@@ -107,8 +107,8 @@ def evaluate_nets(configs, iteration_1, iteration_2) :
     logger.info("Current net: %s" % current_net)
     logger.info("Previous (Best) net: %s" % best_net)
     
-    current_cnet = ConnectNet()
-    best_cnet = ConnectNet()
+    current_cnet = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
+    best_cnet = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
     cuda = torch.cuda.is_available()
     if cuda:
         current_cnet.cuda()

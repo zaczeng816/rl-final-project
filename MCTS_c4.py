@@ -161,7 +161,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration):
         
     for idxx in tqdm(range(start_idx, num_games + start_idx)):
         # logger.info("[CPU: %d]: Game %d" % (cpu, idxx))
-        current_board = c_board()
+        current_board = c_board(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'])
         checkmate = False
         dataset = [] # to get state, policy, value for neural network training
         states = []
@@ -202,7 +202,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration):
    
 def run_MCTS(configs, start_idx=0, iteration=0):
     net_to_play="%s_iter%d.pth.tar" % (configs['training']['neural_net_name'], iteration)
-    net = ConnectNet()
+    net = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
     cuda = torch.cuda.is_available()
     if cuda:
         net.cuda()
