@@ -89,7 +89,7 @@ class ConnectNet(nn.Module):
         self.conv = ConvBlock(num_cols=num_cols, num_rows=num_rows)
         for block in range(num_blocks):
             setattr(self, "res_%i" % block,ResBlock())
-        self.outblock = OutBlock()
+        self.outblock = OutBlock(num_cols=num_cols, num_rows=num_rows)
     
     def forward(self,s):
         s = self.conv(s)

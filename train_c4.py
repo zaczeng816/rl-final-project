@@ -29,10 +29,10 @@ def load_pickle(filename):
         data = pickle.load(pkl_file)
     return data
 
-def load_state(net, optimizer, scheduler, args, iteration, new_optim_state=True):
+def load_state(net, optimizer, scheduler, configs, iteration, new_optim_state=True):
     """ Loads saved model and optimizer states if exists """
     base_path = "./model_data/"
-    checkpoint_path = os.path.join(base_path, "%s_iter%d.pth.tar" % (args.neural_net_name, iteration))
+    checkpoint_path = os.path.join(base_path, "%s_iter%d.pth.tar" % (configs['training']['neural_net_name'], iteration))
     start_epoch, checkpoint = 0, None
     if os.path.isfile(checkpoint_path):
         checkpoint = torch.load(checkpoint_path)
@@ -58,20 +58,20 @@ def load_results(iteration):
         losses_per_epoch = []
     return losses_per_epoch
 
-def train(net, dataset, optimizer, scheduler, start_epoch, cpu, args, iteration):
+def train(net, dataset, optimizer, scheduler, start_epoch, cpu, configs, iteration):
     torch.manual_seed(cpu)
     cuda = torch.cuda.is_available()
     net.train()
     criterion = AlphaLoss()
     
     train_set = board_data(dataset)
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=0, pin_memory=False)
+    train_loader = DataLoader(train_set, batch_size=configs['training']['batch_size'], shuffle=True, num_workers=0, pin_memory=False)
     losses_per_epoch = load_results(iteration + 1)
     
     logger.info("Starting training process...")
     update_size = max(len(train_loader)//10, 1)
     print("Update step size: %d" % update_size)
-    for epoch in range(start_epoch, args.num_epochs):
+    for epoch in range(start_epoch, configs['training']['num_epochs']):
         total_loss = 0.0
         losses_per_batch = []
         for i,data in enumerate(train_loader,0):
@@ -81,18 +81,18 @@ def train(net, dataset, optimizer, scheduler, start_epoch, cpu, args, iteration)
                 state, policy, value = state.cuda(), policy.cuda(), value.cuda()
             policy_pred, value_pred = net(state) # policy_pred = torch.Size([batch, 4672]) value_pred = torch.Size([batch, 1])
             loss = criterion(value_pred[:,0], value, policy_pred, policy)
-            loss = loss/args.gradient_acc_steps
+            loss = loss/configs['training']['gradient_acc_steps']
             loss.backward()
-            clip_grad_norm_(net.parameters(), args.max_norm)
-            if (epoch % args.gradient_acc_steps) == 0:
+            clip_grad_norm_(net.parameters(), configs['training']['max_norm'])
+            if (epoch % configs['training']['gradient_acc_steps']) == 0:
                 optimizer.step()
                 optimizer.zero_grad()
                 
             total_loss += loss.item()
             if i % update_size == (update_size - 1):    # print every update_size-d mini-batches of size = batch_size
-                losses_per_batch.append(args.gradient_acc_steps*total_loss/update_size)
+                losses_per_batch.append(configs['training']['gradient_acc_steps']*total_loss/update_size)
                 # print('[Iteration %d] Process ID: %d [Epoch: %d, %5d/ %d points] total loss per batch: %.3f' %
-                #      (iteration, os.getpid(), epoch + 1, (i + 1)*args.batch_size, len(train_set), losses_per_batch[-1]))
+                #      (iteration, os.getpid(), epoch + 1, (i + 1)*configs['training']['batch_size'], len(train_set), losses_per_batch[-1]))
                 # print("Policy (actual, predicted):",policy[0].argmax().item(),policy_pred[0].argmax().item())
                 # print("Policy data:", policy[0]); print("Policy pred:", policy_pred[0])
                 # print("Value (actual, predicted):", value[0].item(), value_pred[0,0].item())
@@ -112,7 +112,7 @@ def train(net, dataset, optimizer, scheduler, start_epoch, cpu, args, iteration)
                     'optimizer' : optimizer.state_dict(),\
                     'scheduler' : scheduler.state_dict(),\
                 }, os.path.join("./model_data/",\
-                    "%s_iter%d.pth.tar" % (args.neural_net_name, (iteration + 1))))
+                    "%s_iter%d.pth.tar" % (configs['training']['neural_net_name'], (iteration + 1))))
         '''
         # Early stopping
         if len(losses_per_epoch) > 50:
@@ -129,7 +129,7 @@ def train(net, dataset, optimizer, scheduler, start_epoch, cpu, args, iteration)
     plt.savefig(os.path.join("./model_data/", "Loss_vs_Epoch_iter%d_%s.png" % ((iteration + 1), datetime.datetime.today().strftime("%Y-%m-%d"))))
     plt.show()
     
-def train_connectnet(args, iteration, new_optim_state):
+def train_connectnet(configs, iteration, new_optim_state):
     # gather data
     logger.info("Loading training data...")
     data_path="./datasets/iter_%d/" % iteration
@@ -142,12 +142,12 @@ def train_connectnet(args, iteration, new_optim_state):
     logger.info("Loaded data from %s." % data_path)
     
     # train net
-    net = ConnectNet()
+    net = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
     cuda = torch.cuda.is_available()
     if cuda:
         net.cuda()
-    optimizer = optim.Adam(net.parameters(), lr=args.lr, betas=(0.8, 0.999))
+    optimizer = optim.Adam(net.parameters(), lr=configs['training']['lr'], betas=(0.8, 0.999))
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50,100,150,200,250,300,400], gamma=0.77)
-    start_epoch = load_state(net, optimizer, scheduler, args, iteration, new_optim_state)
+    start_epoch = load_state(net, optimizer, scheduler, configs, iteration, new_optim_state)
     
-    train(net, datasets, optimizer, scheduler, start_epoch, 0, args, iteration)
+    train(net, datasets, optimizer, scheduler, start_epoch, 0, configs, iteration)

@@ -151,7 +151,7 @@ def get_policy(root, temp=1):
     #    policy[idx] = ((root.child_number_visits[idx])**(1/temp))/sum(root.child_number_visits**(1/temp))
     return ((root.child_number_visits)**(1/temp))/sum(root.child_number_visits**(1/temp))
 
-def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration):
+def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration):
     logger.info("[CPU: %d]: Starting MCTS self-play..." % cpu)
     
     if not os.path.isdir("./datasets/iter_%d" % iteration):
@@ -169,12 +169,12 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration):
         move_count = 0
         while checkmate == False and current_board.actions() != []:
             if move_count < 11:
-                t = args.temperature_MCTS
+                t = configs['mcts']['temperature_MCTS']
             else:
                 t = 0.1
             states.append(copy.deepcopy(current_board.current_board))
             board_state = copy.deepcopy(ed.encode_board(current_board))
-            root = UCT_search(current_board,args.num_reads_MCTS,connectnet,t)
+            root = UCT_search(current_board,configs['mcts']['num_simulations'],connectnet,t)
             policy = get_policy(root, t)
             # print("[CPU: %d]: Game %d POLICY:\n " % (cpu, idxx), policy)
             current_board = do_decode_n_move_pieces(current_board,\
@@ -200,14 +200,14 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration):
         save_as_pickle("iter_%d/" % iteration +\
                        "dataset_iter%d_cpu%i_%i_%s" % (iteration, cpu, idxx, datetime.datetime.today().strftime("%Y-%m-%d")), dataset_p)
    
-def run_MCTS(args, start_idx=0, iteration=0):
-    net_to_play="%s_iter%d.pth.tar" % (args.neural_net_name, iteration)
+def run_MCTS(configs, start_idx=0, iteration=0):
+    net_to_play="%s_iter%d.pth.tar" % (configs['training']['neural_net_name'], iteration)
     net = ConnectNet()
     cuda = torch.cuda.is_available()
     if cuda:
         net.cuda()
     
-    if args.MCTS_num_processes > 1:
+    if configs['self_play']['MCTS_num_processes'] > 1:
         logger.info("Preparing model for multi-process MCTS...")
         mp.set_start_method("spawn", force=True)
         net.share_memory()
@@ -225,23 +225,23 @@ def run_MCTS(args, start_idx=0, iteration=0):
             logger.info("Initialized model.")
         
         processes = []
-        if args.MCTS_num_processes > mp.cpu_count():
+        if configs['self_play']['MCTS_num_processes'] > mp.cpu_count():
             num_processes = mp.cpu_count()
             logger.info("Required number of processes exceed number of CPUs! Setting MCTS_num_processes to %d" % num_processes)
         else:
-            num_processes = args.MCTS_num_processes
+            num_processes = configs['self_play']['MCTS_num_processes']
         
         logger.info("Spawning %d processes..." % num_processes)
         with torch.no_grad():
             for i in range(num_processes):
-                p = mp.Process(target=MCTS_self_play, args=(net, args.num_games_per_MCTS_process, start_idx, i, args, iteration))
+                p = mp.Process(target=MCTS_self_play, args=(net, configs['self_play']['num_games_per_MCTS_process'], start_idx, i, configs, iteration))
                 p.start()
                 processes.append(p)
             for p in processes:
                 p.join()
         logger.info("Finished multi-process MCTS!")
     
-    elif args.MCTS_num_processes == 1:
+    elif configs['self_play']['MCTS_num_processes'] == 1:
         logger.info("Preparing model for MCTS...")
         net.eval()
         
@@ -257,5 +257,5 @@ def run_MCTS(args, start_idx=0, iteration=0):
             logger.info("Initialized model.")
         
         with torch.no_grad():
-            MCTS_self_play(net, args.num_games_per_MCTS_process, start_idx, 0, args, iteration)
+            MCTS_self_play(net, configs['self_play']['num_games_per_MCTS_process'], start_idx, 0, configs, iteration)
         logger.info("Finished MCTS!")

@@ -11,7 +11,7 @@ from MCTS_c4 import UCT_search, do_decode_n_move_pieces, get_policy
 import pickle
 import datetime
 
-def play_game(net, num_reads_MCTS=200):
+def play_game(net, num_simulations=200):
     # Asks human what he/she wanna play as
     white = None; black = None
     while (True):
@@ -37,7 +37,7 @@ def play_game(net, num_reads_MCTS=200):
         if current_board.player == 0:
             if white != None:
                 print("AI is thinking........")
-                root = UCT_search(current_board,num_reads_MCTS,white,t)
+                root = UCT_search(current_board,num_simulations,white,t)
                 policy = get_policy(root, t)
             else:
                 while(True):
@@ -48,7 +48,7 @@ def play_game(net, num_reads_MCTS=200):
         elif current_board.player == 1:
             if black != None:
                 print("AI is thinking.............")
-                root = UCT_search(current_board,num_reads_MCTS,black,t)
+                root = UCT_search(current_board,num_simulations,black,t)
                 policy = get_policy(root, t)
             else:
                 while(True):
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     best_cnet.load_state_dict(checkpoint['state_dict'])
     play_again = True
     while(play_again == True):
-        play_game(best_cnet, num_reads_MCTS=200)
+        play_game(best_cnet, num_simulations=200)
         while(True):
             again = input("Do you wanna play again? (Y/N)\n")
             if again.lower() in ["y", "n"]:

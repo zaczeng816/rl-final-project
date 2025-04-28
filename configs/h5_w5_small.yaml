@@ -1,0 +1,23 @@
+board:
+  num_rows: 5
+  num_cols: 5
+
+mcts:
+  num_simulations: 50
+  temperature_MCTS: 1.1
+
+self_play:
+  num_games_per_MCTS_process: 100
+  num_evaluator_games: 100
+  MCTS_num_processes: 8
+
+model:
+  num_blocks: 5
+
+training:
+  neural_net_name: "cc3_current_net_"
+  batch_size: 32
+  num_epochs: 300
+  lr: 0.001
+  gradient_acc_steps: 1
+  max_norm: 1.0
