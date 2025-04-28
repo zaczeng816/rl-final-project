@@ -13,6 +13,7 @@ import pickle
 import torch.multiprocessing as mp
 import datetime
 import logging
+import yaml
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', \
                     datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
@@ -138,7 +139,7 @@ def evaluate_nets(configs, iteration_1, iteration_2) :
         logger.info("Spawning %d processes..." % num_processes)
         with torch.no_grad():
             for i in range(num_processes):
-                p = mp.Process(target=fork_process,args=(Arena(current_cnet,best_cnet,configs['board']['num_cols'],configs['board']['num_rows']), configs['self_play']['num_evaluator_games'], i))
+                p = mp.Process(target=fork_process,args=(Arena(current_cnet,best_cnet,configs['board']['num_cols'],configs['board']['num_rows'], configs['board']['win_streak']), configs['self_play']['num_evaluator_games'], i))
                 p.start()
                 processes.append(p)
             for p in processes:
@@ -160,7 +161,7 @@ def evaluate_nets(configs, iteration_1, iteration_2) :
         current_cnet.load_state_dict(checkpoint['state_dict'])
         checkpoint = torch.load(best_net_filename)
         best_cnet.load_state_dict(checkpoint['state_dict'])
-        arena1 = Arena(current_cnet=current_cnet, best_cnet=best_cnet, num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'])
+        arena1 = Arena(current_cnet=current_cnet, best_cnet=best_cnet, num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], win_streak=configs['board']['win_streak'])
         arena1.evaluate(num_games=configs['self_play']['num_evaluator_games'], cpu=0, num_simulations=200)
 
         print(stats)
@@ -170,14 +171,3 @@ def evaluate_nets(configs, iteration_1, iteration_2) :
             return iteration_2
         else:
             return iteration_1
-
-def parse_args():
-    parser = argparse.ArgumentParser(description='Evaluate nets')
-    parser.add_argument('--neural_net_name', type=str, default='cc4_current_net_', help='neural net name')
-    parser.add_argument('--num_evaluator_games', type=int, default=100, help='number of games to evaluate')
-    parser.add_argument('--MCTS_num_processes', type=int, default=1, help='number of processes to use for MCTS')
-    return parser.parse_args()
-
-if __name__ == "__main__":
-    args = parse_args()
-    evaluate_nets(args, 0, 6)
