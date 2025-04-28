@@ -1,6 +1,7 @@
 # Project specific files
 model_data/
 datasets/
+evaluator_data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
