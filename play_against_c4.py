@@ -85,9 +85,7 @@ def play_game(net, configs):
         return None, dataset
 
 if __name__ == "__main__":
-    best_net="cc4_current_net__iter7.pth.tar"
-    best_net_filename = os.path.join("./model_data/",\
-                                    best_net)
+    best_net_filename = "model_data/cc3_current_net_iter26.pth.tar"
     configs = yaml.safe_load(open('configs/h5_w5_c3_small.yaml', 'r'))
     best_cnet = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
     cuda = torch.cuda.is_available()
@@ -98,7 +96,7 @@ if __name__ == "__main__":
     best_cnet.load_state_dict(checkpoint['state_dict'])
     play_again = True
     while(play_again == True):
-        play_game(best_cnet, configs, num_simulations=200)
+        play_game(best_cnet, configs)
         while(True):
             again = input("Do you wanna play again? (Y/N)\n")
             if again.lower() in ["y", "n"]:
