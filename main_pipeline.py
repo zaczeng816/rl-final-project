@@ -19,7 +19,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--iteration", type=int, default=0, help="Current iteration number to resume from")
     parser.add_argument("--total_iterations", type=int, default=1000, help="Total number of iterations to run")
-    parser.add_argument("--config", type=str, default="configs/h5_w5_small.yaml", help="Config file")
+    parser.add_argument("--config", type=str, default="configs/h5_w5_c3_small.yaml", help="Config file")
     args = parser.parse_args()
     
     logger.info("Starting iteration pipeline...")

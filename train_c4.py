@@ -67,10 +67,11 @@ def train(net, dataset, optimizer, scheduler, start_epoch, cpu, configs, iterati
     train_set = board_data(dataset)
     train_loader = DataLoader(train_set, batch_size=configs['training']['batch_size'], shuffle=True, num_workers=0, pin_memory=False)
     losses_per_epoch = load_results(iteration + 1)
-    
+
     logger.info("Starting training process...")
     update_size = max(len(train_loader)//10, 1)
     print("Update step size: %d" % update_size)
+    print(f"Number of batches: {len(train_loader)}")
     for epoch in range(start_epoch, configs['training']['num_epochs']):
         total_loss = 0.0
         losses_per_batch = []
@@ -96,8 +97,8 @@ def train(net, dataset, optimizer, scheduler, start_epoch, cpu, configs, iterati
                 # print("Policy (actual, predicted):",policy[0].argmax().item(),policy_pred[0].argmax().item())
                 # print("Policy data:", policy[0]); print("Policy pred:", policy_pred[0])
                 # print("Value (actual, predicted):", value[0].item(), value_pred[0,0].item())
-                #print("Conv grad: %.7f" % net.conv.conv1.weight.grad.mean().item())
-                #print("Res18 grad %.7f:" % net.res_18.conv1.weight.grad.mean().item())
+                # print("Conv grad: %.7f" % net.conv.conv1.weight.grad.mean().item())
+                # print("Res18 grad %.7f:" % net.res_18.conv1.weight.grad.mean().item())
                 # print(" ")
                 total_loss = 0.0
         

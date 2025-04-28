@@ -10,8 +10,9 @@ import copy
 from MCTS_c4 import UCT_search, do_decode_n_move_pieces, get_policy
 import pickle
 import datetime
+import yaml
 
-def play_game(net, num_simulations=200):
+def play_game(net, configs):
     # Asks human what he/she wanna play as
     white = None; black = None
     while (True):
@@ -22,7 +23,7 @@ def play_game(net, num_simulations=200):
             white = net; break
         else:
             print("I didn't get that.")
-    current_board = cboard()
+    current_board = cboard(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], win_streak=configs['board']['win_streak'])
     checkmate = False
     dataset = []
     value = 0; t = 0.1; moves_count = 0
@@ -37,7 +38,7 @@ def play_game(net, num_simulations=200):
         if current_board.player == 0:
             if white != None:
                 print("AI is thinking........")
-                root = UCT_search(current_board,num_simulations,white,t)
+                root = UCT_search(current_board,configs['mcts']['num_simulations'],white,t)
                 policy = get_policy(root, t)
             else:
                 while(True):
@@ -48,7 +49,7 @@ def play_game(net, num_simulations=200):
         elif current_board.player == 1:
             if black != None:
                 print("AI is thinking.............")
-                root = UCT_search(current_board,num_simulations,black,t)
+                root = UCT_search(current_board,configs['mcts']['num_simulations'],black,t)
                 policy = get_policy(root, t)
             else:
                 while(True):
@@ -87,7 +88,8 @@ if __name__ == "__main__":
     best_net="cc4_current_net__iter7.pth.tar"
     best_net_filename = os.path.join("./model_data/",\
                                     best_net)
-    best_cnet = ConnectNet()
+    configs = yaml.safe_load(open('configs/h5_w5_c3_small.yaml', 'r'))
+    best_cnet = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
     cuda = torch.cuda.is_available()
     if cuda:
         best_cnet.cuda()
@@ -96,7 +98,7 @@ if __name__ == "__main__":
     best_cnet.load_state_dict(checkpoint['state_dict'])
     play_again = True
     while(play_again == True):
-        play_game(best_cnet, num_simulations=200)
+        play_game(best_cnet, configs, num_simulations=200)
         while(True):
             again = input("Do you wanna play again? (Y/N)\n")
             if again.lower() in ["y", "n"]:

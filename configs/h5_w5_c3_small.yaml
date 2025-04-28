@@ -1,22 +1,23 @@
 board:
   num_rows: 5
   num_cols: 5
+  win_streak: 3
 
 mcts:
   num_simulations: 50
   temperature_MCTS: 1.1
 
 self_play:
-  num_games_per_MCTS_process: 100
-  num_evaluator_games: 100
-  MCTS_num_processes: 8
+  num_games_per_MCTS_process: 4
+  num_evaluator_games: 4
+  MCTS_num_processes: 16
 
 model:
   num_blocks: 5
 
 training:
-  neural_net_name: "cc3_current_net_"
-  batch_size: 32
+  neural_net_name: "cc3_current_net"
+  batch_size: 128
   num_epochs: 300
   lr: 0.001
   gradient_acc_steps: 1

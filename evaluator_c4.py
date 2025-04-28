@@ -32,11 +32,12 @@ def load_pickle(filename):
     return data
 
 class Arena():
-    def __init__(self, current_cnet, best_cnet, num_cols, num_rows):
+    def __init__(self, current_cnet, best_cnet, num_cols, num_rows, win_streak):
         self.current = current_cnet
         self.best = best_cnet
         self.num_cols = num_cols
         self.num_rows = num_rows
+        self.win_streak = win_streak
     
     def play_round(self, num_simulations=200):
         logger.info("Starting game round...")
@@ -44,7 +45,7 @@ class Arena():
             white = self.current; black = self.best; w = "current"; b = "best"
         else:
             white = self.best; black = self.current; w = "best"; b = "current"
-        current_board = cboard(num_cols=self.num_cols, num_rows=self.num_rows)
+        current_board = cboard(num_cols=self.num_cols, num_rows=self.num_rows, win_streak=self.win_streak)
         checkmate = False
         dataset = []
         value = 0; t = 0.1

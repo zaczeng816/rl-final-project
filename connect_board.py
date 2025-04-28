@@ -3,9 +3,10 @@
 import numpy as np
 
 class Board():
-    def __init__(self, num_rows=6, num_cols=7):
+    def __init__(self, num_rows=6, num_cols=7, win_streak=4):
         self.num_rows = num_rows
         self.num_cols = num_cols
+        self.win_streak = win_streak
 
         self.init_board = np.zeros([self.num_rows, self.num_cols]).astype(str)
         self.init_board[self.init_board == "0.0"] = " "
@@ -38,77 +39,33 @@ class Board():
                 self.player = 0
     
     def check_winner(self):
-        if self.player == 1:
-            for row in range(self.num_rows):
-                for col in range(self.num_cols):
-                    if self.current_board[row, col] != " ":
-                        # rows
-                        try:
-                            if self.current_board[row, col] == "O" and self.current_board[row + 1, col] == "O" and \
-                                self.current_board[row + 2, col] == "O" and self.current_board[row + 3, col] == "O":
-                                #print("row")
-                                return True
-                        except IndexError:
-                            next
-                        # columns
-                        try:
-                            if self.current_board[row, col] == "O" and self.current_board[row, col + 1] == "O" and \
-                                self.current_board[row, col + 2] == "O" and self.current_board[row, col + 3] == "O":
-                                #print("col")
-                                return True
-                        except IndexError:
-                            next
-                        # \ diagonal
-                        try:
-                            if self.current_board[row, col] == "O" and self.current_board[row + 1, col + 1] == "O" and \
-                                self.current_board[row + 2, col + 2] == "O" and self.current_board[row + 3, col + 3] == "O":
-                                #print("\\")
-                                return True
-                        except IndexError:
-                            next
-                        # / diagonal
-                        try:
-                            if self.current_board[row, col] == "O" and self.current_board[row + 1, col - 1] == "O" and \
-                                self.current_board[row + 2, col - 2] == "O" and self.current_board[row + 3, col - 3] == "O"\
-                                and (col-3) >= 0:
-                                #print("/")
-                                return True
-                        except IndexError:
-                            next
+        target = "O" if self.player == 1 else "X"
 
-        if self.player == 0:
-            for row in range(self.num_rows):
-                for col in range(self.num_cols):
-                    if self.current_board[row, col] != " ":
-                        # rows
-                        try:
-                            if self.current_board[row, col] == "X" and self.current_board[row + 1, col] == "X" and \
-                                self.current_board[row + 2, col] == "X" and self.current_board[row + 3, col] == "X":
-                                return True
-                        except IndexError:
-                            next
-                        # columns
-                        try:
-                            if self.current_board[row, col] == "X" and self.current_board[row, col + 1] == "X" and \
-                                self.current_board[row, col + 2] == "X" and self.current_board[row, col + 3] == "X":
-                                return True
-                        except IndexError:
-                            next
-                        # \ diagonal
-                        try:
-                            if self.current_board[row, col] == "X" and self.current_board[row + 1, col + 1] == "X" and \
-                                self.current_board[row + 2, col + 2] == "X" and self.current_board[row + 3, col + 3] == "X":
-                                return True
-                        except IndexError:
-                            next
-                        # / diagonal
-                        try:
-                            if self.current_board[row, col] == "X" and self.current_board[row + 1, col - 1] == "X" and \
-                                self.current_board[row + 2, col - 2] == "X" and self.current_board[row + 3, col - 3] == "X"\
-                                and (col-3) >= 0:
-                                return True
-                        except IndexError:
-                            next
+        directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+
+        for r in range(self.num_rows):
+            for c in range(self.num_cols):
+                if self.current_board[r, c] != target:
+                    continue
+
+                # Try each direction
+                for dr, dc in directions:
+                    count = 1
+                    for i in range(1, self.win_streak):
+                        rr, cc = r + dr * i, c + dc * i
+                        if (
+                            0 <= rr < self.num_rows and
+                            0 <= cc < self.num_cols and
+                            self.current_board[rr, cc] == target
+                        ):
+                            count += 1
+                        else:
+                            break
+
+                    if count >= self.win_streak:
+                        return True
+
+        return False
 
     def actions(self): # returns all possible moves
         acts = []

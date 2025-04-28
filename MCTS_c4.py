@@ -161,7 +161,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration):
         
     for idxx in tqdm(range(start_idx, num_games + start_idx)):
         # logger.info("[CPU: %d]: Game %d" % (cpu, idxx))
-        current_board = c_board(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'])
+        current_board = c_board(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], win_streak=configs['board']['win_streak'])
         checkmate = False
         dataset = [] # to get state, policy, value for neural network training
         states = []
