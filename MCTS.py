@@ -128,12 +128,12 @@ class DummyNode(object):
         self.child_total_value = collections.defaultdict(float)
         self.child_number_visits = collections.defaultdict(float)
 
-def UCT_search(game_state, num_reads, net, temp):
+def UCT_search(game_state, num_reads, net, temp, device):
     root = UCTNode(game_state, move=None, parent=DummyNode())
     for i in range(num_reads):
         leaf = root.select_leaf()
         encoded_s = ed.encode_board(leaf.game); encoded_s = encoded_s.transpose(2,0,1)
-        encoded_s = torch.from_numpy(encoded_s).float().cuda()
+        encoded_s = torch.from_numpy(encoded_s).float().to(device)
         child_priors, value_estimate = net(encoded_s)
         child_priors = child_priors.detach().cpu().numpy().reshape(-1); value_estimate = value_estimate.item()
         if leaf.game.check_winner() == True or leaf.game.actions() == []: # if somebody won or draw
@@ -153,7 +153,7 @@ def get_policy(root, temp=1):
     return ((root.child_number_visits)**(1/temp))/sum(root.child_number_visits**(1/temp))
 
 @torch.no_grad()
-def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration):
+def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, device):
     logger.info("[CPU: %d]: Starting MCTS self-play..." % cpu)
     
     if not os.path.isdir("./datasets/iter_%d" % iteration):
@@ -176,14 +176,12 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration):
                 t = 0.1
             states.append(copy.deepcopy(current_board.current_board))
             board_state = copy.deepcopy(ed.encode_board(current_board))
-            root = UCT_search(current_board,configs['mcts']['num_simulations'],connectnet,t)
+            root = UCT_search(current_board, configs['mcts']['num_simulations'], connectnet, t, device)
             policy = get_policy(root, t)
-            # print("[CPU: %d]: Game %d POLICY:\n " % (cpu, idxx), policy)
             current_board = do_decode_n_move_pieces(current_board,\
                                                     np.random.choice(np.arange(current_board.num_cols), \
                                                                      p = policy)) # decode move and move piece(s)
             dataset.append([board_state,policy])
-            # print("[Iteration: %d CPU: %d]: Game %d CURRENT BOARD:\n" % (iteration, cpu, idxx), current_board.current_board,current_board.player); print(" ")
             if current_board.check_winner() == True: # if somebody won
                 if current_board.player == 0: # black wins
                     value = -1
@@ -202,31 +200,8 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration):
         save_as_pickle("iter_%d/" % iteration +\
                        "dataset_iter%d_cpu%i_%i_%s" % (iteration, cpu, idxx, datetime.datetime.today().strftime("%Y-%m-%d")), dataset_p)
    
-def run_MCTS(configs, net, start_idx=0, iteration=0):
-    if configs['self_play']['MCTS_num_processes'] > 1:
-        logger.info("Preparing model for multi-process MCTS...")
-        mp.set_start_method("spawn", force=True)
-        net.share_memory()
-        
-        processes = []
-        if configs['self_play']['MCTS_num_processes'] > mp.cpu_count():
-            num_processes = mp.cpu_count()
-            logger.info("Required number of processes exceed number of CPUs! Setting MCTS_num_processes to %d" % num_processes)
-        else:
-            num_processes = configs['self_play']['MCTS_num_processes']
-        
-        logger.info("Spawning %d processes..." % num_processes)
-        with torch.no_grad():
-            for i in range(num_processes):
-                p = mp.Process(target=MCTS_self_play, args=(net, configs['self_play']['num_games_per_MCTS_process'], start_idx, i, configs, iteration))
-                p.start()
-                processes.append(p)
-            for p in processes:
-                p.join()
-        logger.info("Finished multi-process MCTS!")
-    
-    elif configs['self_play']['MCTS_num_processes'] == 1:
-        logger.info("Preparing model for MCTS...")
-        with torch.no_grad():
-            MCTS_self_play(net, configs['self_play']['num_games_per_MCTS_process'], start_idx, 0, configs, iteration)
-        logger.info("Finished MCTS!")
+def run_MCTS(configs, connectnet, start_idx=0, iteration=0, device="cuda"):
+    logger.info("Preparing model for MCTS...")
+    with torch.no_grad():
+        MCTS_self_play(connectnet, configs['self_play']['num_games_per_MCTS_process'], start_idx, 0, configs, iteration, device)
+    logger.info("Finished MCTS!")
