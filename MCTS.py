@@ -128,18 +128,48 @@ class DummyNode(object):
         self.child_total_value = collections.defaultdict(float)
         self.child_number_visits = collections.defaultdict(float)
 
+class BatchedEvaluator:
+    def __init__(self, net, device, batch_size=64):
+        self.net = net
+        self.device = device
+        self.batch_size = batch_size
+        self._buf_states = []
+        self._buf_leaves = []
+
+    def enqueue(self, leaf):
+        s = ed.encode_board(leaf.game)
+        t = torch.from_numpy(s.transpose(2,0,1)).float()
+        self._buf_states.append(t)
+        self._buf_leaves.append(leaf)
+        if len(self._buf_states) >= self.batch_size:
+            self.flush()
+
+    @torch.no_grad()
+    def flush(self):
+        if not self._buf_states: return
+        batch = torch.stack(self._buf_states, dim=0).to(
+            self.device, non_blocking=True
+        )
+        priors_batch, values_batch = self.net(batch)
+        priors_batch = priors_batch.cpu().numpy()
+        values_batch = values_batch.cpu().numpy()
+        for leaf, ps, v in zip(self._buf_leaves, priors_batch, values_batch):
+            if leaf.game.check_winner() or leaf.game.actions()==[]:
+                leaf.backup(v.item())
+            else:
+                leaf.expand(ps.reshape(-1))
+                leaf.backup(v.item())
+        self._buf_states.clear()
+        self._buf_leaves.clear()
+
+
 def UCT_search(game_state, num_reads, net, temp, device):
     root = UCTNode(game_state, move=None, parent=DummyNode())
-    for i in range(num_reads):
+    evaluator = BatchedEvaluator(net, device)
+    for _ in range(num_reads):
         leaf = root.select_leaf()
-        encoded_s = ed.encode_board(leaf.game); encoded_s = encoded_s.transpose(2,0,1)
-        encoded_s = torch.from_numpy(encoded_s).float().to(device)
-        child_priors, value_estimate = net(encoded_s)
-        child_priors = child_priors.detach().cpu().numpy().reshape(-1); value_estimate = value_estimate.item()
-        if leaf.game.check_winner() == True or leaf.game.actions() == []: # if somebody won or draw
-            leaf.backup(value_estimate); continue
-        leaf.expand(child_priors) # need to make sure valid moves
-        leaf.backup(value_estimate)
+        evaluator.enqueue(leaf)
+    evaluator.flush()
     return root
 
 def do_decode_n_move_pieces(board,move):
@@ -201,7 +231,19 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
                        "dataset_iter%d_cpu%i_%i_%s" % (iteration, cpu, idxx, datetime.datetime.today().strftime("%Y-%m-%d")), dataset_p)
    
 def run_MCTS(configs, connectnet, start_idx=0, iteration=0, device="cuda"):
-    logger.info("Preparing model for MCTS...")
-    with torch.no_grad():
-        MCTS_self_play(connectnet, configs['self_play']['num_games_per_MCTS_process'], start_idx, 0, configs, iteration, device)
-    logger.info("Finished MCTS!")
+    connectnet.share_memory()
+    mp.set_start_method('spawn', force=True)
+
+    n_procs = configs['self_play']['MCTS_num_processes']
+    games_per_proc = configs['self_play']['num_games_per_MCTS_process']
+    procs = []
+    for cpu in range(n_procs):
+        s = start_idx + cpu * games_per_proc
+        p = mp.Process(
+            target=MCTS_self_play,
+            args=(connectnet, games_per_proc, s, cpu, configs, iteration, device),
+        )
+        p.start()
+        procs.append(p)
+    for p in procs:
+        p.join()
