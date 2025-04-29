@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import os.path
 import torch
 import numpy as np
@@ -80,20 +81,29 @@ def play_game(net, configs, device):
         dataset.append("Nobody wins"); print("DRAW!!!!!")
         return None, dataset
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--net", type=str, default="model_ckpts/c4_current_net_trained_iter8.pth.tar", help="Path to the trained network")
+    parser.add_argument("--config", type=str, default="configs/h6_w7_c4_base.yaml", help="Path to the config file")
+    return parser.parse_args()
+
 if __name__ == "__main__":
-    best_net_filename = "model_ckpts/h5_w5_c3_current_net_large_step10000.pth"
-    configs = yaml.safe_load(open('configs/h5_w5_c3_large.yaml', 'r'))
+    args = parse_args()
+    configs = yaml.safe_load(open(args.config, 'r'))
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    best_cnet = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
-    cuda = torch.cuda.is_available()
-    if cuda:
-        best_cnet.cuda()
-    best_cnet.eval()
-    checkpoint = torch.load(best_net_filename)
-    best_cnet.load_state_dict(checkpoint)
+    net = ConnectNet(
+        num_cols=configs['board']['num_cols'], 
+        num_rows=configs['board']['num_rows'], 
+        num_blocks=configs['model']['num_blocks']
+    ).to(device)
+    net.eval()
+
+    checkpoint = torch.load(args.net)
+    net.load_state_dict(checkpoint['state_dict'])
     play_again = True
     while(play_again == True):
-        play_game(best_cnet, configs, device)
+        play_game(net, configs, device)
         while(True):
             again = input("Do you wanna play again? (Y/N)\n")
             if again.lower() in ["y", "n"]:
