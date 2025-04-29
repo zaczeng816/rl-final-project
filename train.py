@@ -66,7 +66,9 @@ if __name__ == "__main__":
 
             # evaluate model
             winrate_ai_first, winrate_random_agent = parallel_evaluate_net(net, configs, args.device)
-            wandb.log({"winrate_ai_first": winrate_ai_first, "winrate_random_agent": winrate_random_agent}, step=global_step)
+            logs = {"winrate_ai_first": winrate_ai_first, "winrate_random_agent": winrate_random_agent}
+            print(logs)
+            wandb.log(logs, step=global_step)
 
             # generate dataset
             run_MCTS(configs, net, start_idx=0, iteration=model_iteration, device=args.device)
