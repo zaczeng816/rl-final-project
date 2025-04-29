@@ -4,15 +4,16 @@ import os
 import collections
 import numpy as np
 import math
-import encoder_decoder_c4 as ed
-from connect_board import Board as c_board
 import copy
 import torch
 import torch.multiprocessing as mp
-from alpha_net_c4 import ConnectNet
 import datetime
 import logging
+
 from tqdm import tqdm
+
+import encoder_decoder_c4 as ed
+from connect_board import Board as c_board
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', \
                     datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
@@ -151,6 +152,7 @@ def get_policy(root, temp=1):
     #    policy[idx] = ((root.child_number_visits[idx])**(1/temp))/sum(root.child_number_visits**(1/temp))
     return ((root.child_number_visits)**(1/temp))/sum(root.child_number_visits**(1/temp))
 
+@torch.no_grad()
 def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration):
     logger.info("[CPU: %d]: Starting MCTS self-play..." % cpu)
     
@@ -159,7 +161,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration):
             os.mkdir("datasets")
         os.mkdir("datasets/iter_%d" % iteration)
         
-    for idxx in tqdm(range(start_idx, num_games + start_idx)):
+    for idxx in tqdm(range(start_idx, num_games + start_idx), position=cpu):
         # logger.info("[CPU: %d]: Game %d" % (cpu, idxx))
         current_board = c_board(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], win_streak=configs['board']['win_streak'])
         checkmate = False
@@ -200,29 +202,11 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration):
         save_as_pickle("iter_%d/" % iteration +\
                        "dataset_iter%d_cpu%i_%i_%s" % (iteration, cpu, idxx, datetime.datetime.today().strftime("%Y-%m-%d")), dataset_p)
    
-def run_MCTS(configs, start_idx=0, iteration=0):
-    net_to_play="%s_iter%d.pth.tar" % (configs['training']['neural_net_name'], iteration)
-    net = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
-    cuda = torch.cuda.is_available()
-    if cuda:
-        net.cuda()
-    
+def run_MCTS(configs, net, start_idx=0, iteration=0):
     if configs['self_play']['MCTS_num_processes'] > 1:
         logger.info("Preparing model for multi-process MCTS...")
         mp.set_start_method("spawn", force=True)
         net.share_memory()
-        net.eval()
-    
-        current_net_filename = os.path.join("./model_data/",\
-                                        net_to_play)
-        if os.path.isfile(current_net_filename):
-            checkpoint = torch.load(current_net_filename)
-            net.load_state_dict(checkpoint['state_dict'])
-            logger.info("Loaded %s model." % current_net_filename)
-        else:
-            torch.save({'state_dict': net.state_dict()}, os.path.join("./model_data/",\
-                        net_to_play))
-            logger.info("Initialized model.")
         
         processes = []
         if configs['self_play']['MCTS_num_processes'] > mp.cpu_count():
@@ -243,19 +227,6 @@ def run_MCTS(configs, start_idx=0, iteration=0):
     
     elif configs['self_play']['MCTS_num_processes'] == 1:
         logger.info("Preparing model for MCTS...")
-        net.eval()
-        
-        current_net_filename = os.path.join("./model_data/",\
-                                        net_to_play)
-        if os.path.isfile(current_net_filename):
-            checkpoint = torch.load(current_net_filename)
-            net.load_state_dict(checkpoint['state_dict'])
-            logger.info("Loaded %s model." % current_net_filename)
-        else:
-            torch.save({'state_dict': net.state_dict()}, os.path.join("./model_data/",\
-                        net_to_play))
-            logger.info("Initialized model.")
-        
         with torch.no_grad():
             MCTS_self_play(net, configs['self_play']['num_games_per_MCTS_process'], start_idx, 0, configs, iteration)
         logger.info("Finished MCTS!")
