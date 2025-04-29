@@ -1,7 +1,10 @@
 # Project specific files
+model_ckpts/
 model_data/
 datasets/
 evaluator_data/
+
+wandb/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
