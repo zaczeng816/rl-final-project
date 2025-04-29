@@ -23,6 +23,21 @@ class RandomAgent:
         available_actions = board.actions()
         return available_actions[np.random.randint(0, len(available_actions))]
 
+class AlphaZeroAgent:
+    def __init__(self, net, configs, device, temperature=0.1):
+        self.net = net
+        self.configs = configs
+        self.device = device
+        self.temperature = temperature
+
+    def play(self, board):
+        board_state = ed.encode_board(board)
+
+        root = UCT_search(board, self.configs['mcts']['num_simulations'], self.net, self.temperature, self.device)
+        policy = get_policy(root, self.temperature)
+
+        return np.random.choice(np.arange(board.num_cols), p = policy)
+
 def play_game(net, configs, device, ai_first: bool):
     # Randomly assign AI and RandomAgent roles
     white = None; black = None
@@ -54,23 +69,21 @@ def play_game(net, configs, device, ai_first: bool):
             else:
                 root = UCT_search(current_board, configs['mcts']['num_simulations'], black, t, device)
                 policy = get_policy(root, t)
-        current_board = do_decode_n_move_pieces(current_board, np.random.choice(np.arange(current_board.num_cols), p = policy)) # decode move and move piece(s)
+
+        next_move = np.random.choice(np.arange(current_board.num_cols), p = policy)
+        current_board = do_decode_n_move_pieces(current_board, next_move) # decode move and move piece(s)
+
         if current_board.check_winner() == True: # someone wins
             if current_board.player == 0: # black wins
                 value = -1
             elif current_board.player == 1: # white wins
                 value = 1
             checkmate = True
+
     if value == -1:
-        if ai_first:
-            return True # AI wins
-        else:
-            return False # RandomAgent wins
+        return ai_first  # AI wins
     elif value == 1:
-        if ai_first:
-            return False # RandomAgent wins
-        else:
-            return True # AI wins
+        return not ai_first  # RandomAgent
     else:
         return None
 
