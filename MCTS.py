@@ -204,16 +204,14 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
 
             # print policy for first 5 games
             if cpu == 0 and idxx < start_idx + 5:
-                logger.info("[CPU: %d]: Game %d POLICY:\n %s" % (cpu, idxx, policy))
+                logger.info("[CPU: %d]: Game %d Move %d POLICY:\n %s" % (cpu, idxx, move_count, policy))
 
-            current_board = do_decode_n_move_pieces(current_board,\
-                                                    np.random.choice(np.arange(current_board.num_cols), \
-                                                                     p = policy)) # decode move and move piece(s)
+            current_board = do_decode_n_move_pieces(current_board, np.random.choice(np.arange(current_board.num_cols), p = policy)) # decode move and move piece(s)
             dataset.append([board_state,policy])
 
             # print current board for first 5 games
             if cpu == 0 and idxx < start_idx + 5:
-                logger.info("[Iteration: %d CPU: %d]: Game %d CURRENT BOARD:\n" % (iteration, cpu, idxx), current_board.current_board,current_board.player); print(" ")
+                logger.info("[Iteration: %d CPU: %d]: Game %d Move %d CURRENT BOARD: %s\n" % (iteration, cpu, idxx, move_count, current_board.current_board))
 
             if current_board.check_winner() == True: # if somebody won
                 if current_board.player == 0: # black wins
@@ -222,13 +220,8 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
                     value = 1
                 checkmate = True
             move_count += 1
-        dataset_p = []
-        for idx,data in enumerate(dataset):
-            s,p = data
-            if idx == 0:
-                dataset_p.append([s,p,0])
-            else:
-                dataset_p.append([s,p,value])
+
+        dataset_p = [(s,p,value) for s,p in dataset]
         del dataset
         save_as_pickle("iter_%d/" % iteration +\
                        "dataset_iter%d_cpu%i_%i_%s" % (iteration, cpu, idxx, datetime.datetime.today().strftime("%Y-%m-%d")), dataset_p)
