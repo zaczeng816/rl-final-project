@@ -94,8 +94,6 @@ def evaluate_net(net, configs, device, num_games: int, result_queue):
         else:
             random_agent_wins += wins
 
-    print(ai_first_wins, random_agent_wins)
-
     # Send back the results
     result_queue.put((ai_first_wins, random_agent_wins))
 
