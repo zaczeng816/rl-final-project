@@ -1,6 +1,7 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
+import pygame
 
 class PlatformJumperEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
@@ -25,7 +26,6 @@ class PlatformJumperEnv(gym.Env):
 
         self.render_mode = render_mode
         if self.render_mode == "human":
-            import pygame
             pygame.init()
             self.window = pygame.display.set_mode((400, 600))
             self.clock = pygame.time.Clock()
@@ -90,7 +90,6 @@ class PlatformJumperEnv(gym.Env):
 
     def render(self):
         if self.render_mode == "human":
-            import pygame
             self.window.fill((255, 255, 255))
             # Draw player
             pygame.draw.rect(self.window, (255, 0, 0), pygame.Rect(200 + self.player["x"]*10, 500 - self.player["y"]*10, 20, 20))
@@ -103,5 +102,4 @@ class PlatformJumperEnv(gym.Env):
 
     def close(self):
         if self.render_mode == "human":
-            import pygame
             pygame.quit()
