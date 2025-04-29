@@ -8,16 +8,14 @@ import copy
 import torch
 import torch.multiprocessing as mp
 import datetime
-import logging
 
 from tqdm import tqdm
+from loguru import logger
 
 import encoder_decoder_c4 as ed
 from connect_board import Board as c_board
 
-logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', \
-                    datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
-logger = logging.getLogger(__file__)
+logger.add("logs/mcts.log")
 
 def save_as_pickle(filename, data):
     completeName = os.path.join("./datasets/",\
@@ -182,15 +180,12 @@ def get_policy(root, temp=1):
 
 @torch.no_grad()
 def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, device):
-    logger.info("[CPU: %d]: Starting MCTS self-play..." % cpu)
-    
     if not os.path.isdir("./datasets/iter_%d" % iteration):
         if not os.path.isdir("datasets"):
             os.mkdir("datasets")
         os.mkdir("datasets/iter_%d" % iteration)
         
     for idxx in tqdm(range(start_idx, num_games + start_idx), position=cpu):
-        # logger.info("[CPU: %d]: Game %d" % (cpu, idxx))
         current_board = c_board(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], win_streak=configs['board']['win_streak'])
         checkmate = False
         dataset = [] # to get state, policy, value for neural network training
@@ -206,10 +201,20 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
             board_state = copy.deepcopy(ed.encode_board(current_board))
             root = UCT_search(current_board, configs['mcts']['num_simulations'], connectnet, t, device)
             policy = get_policy(root, t)
+
+            # print policy for first 5 games
+            if cpu == 0 and idxx < start_idx + 5:
+                logger.info("[CPU: %d]: Game %d POLICY:\n %s" % (cpu, idxx, policy))
+
             current_board = do_decode_n_move_pieces(current_board,\
                                                     np.random.choice(np.arange(current_board.num_cols), \
                                                                      p = policy)) # decode move and move piece(s)
             dataset.append([board_state,policy])
+
+            # print current board for first 5 games
+            if cpu == 0 and idxx < start_idx + 5:
+                logger.info("[Iteration: %d CPU: %d]: Game %d CURRENT BOARD:\n" % (iteration, cpu, idxx), current_board.current_board,current_board.player); print(" ")
+
             if current_board.check_winner() == True: # if somebody won
                 if current_board.player == 0: # black wins
                     value = -1
