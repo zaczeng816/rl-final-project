@@ -1,3 +1,9 @@
+import numpy as np
+import yaml
+import torch
+from alpha_net_c4 import ConnectNet
+from MCTS import UCT_search, do_decode_n_move_pieces, get_policy
+from connect_board import Board 
 
 class RandomAgent:
     def __init__(self):
@@ -6,8 +12,6 @@ class RandomAgent:
     def play(self, env):
         action_space = env.action_space
         return action_space.sample()
-
-import numpy as np
 
 class SmartAgent():
     
@@ -123,3 +127,28 @@ class SmartAgent():
                     count = 0
 
         return False
+    
+
+class AlphaZeroAgent():
+    def __init__(self, yaml_file, model_path):        
+        configs = yaml.safe_load(open(yaml_file, 'r'))
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
+        model = model.to(device)
+        model.eval()
+        checkpoint = torch.load(model_path, map_location=torch.device(device))
+        model.load_state_dict(checkpoint['state_dict'])
+        self.model = model
+        self.device = device
+        self.configs = configs
+
+
+    def play(self, env):
+        game_state = Board()
+        for row in range(6):
+            for col in range(7):
+                if env.board[row, col] != 0:
+                    game_state.current_board[row, col] = 'O' if env.board[row, col] == 1 else 'X'
+        root = UCT_search(game_state, self.configs['mcts']['num_simulations'], self.model, None, self.device)
+        policy = get_policy(root, temp=1)
+        return np.random.choice(np.arange(game_state.num_cols), p = policy)
