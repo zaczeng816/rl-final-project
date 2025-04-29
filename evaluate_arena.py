@@ -37,10 +37,6 @@ def play_game(net, configs, device, ai_first: bool):
     checkmate = False
     value = 0; t = 0.1; moves_count = 0
     while checkmate == False and current_board.actions() != []:
-        if moves_count <= 5:
-            t = 1
-        else:
-            t = 0.1
         moves_count += 1
         if current_board.player == 0:
             if isinstance(white, RandomAgent):

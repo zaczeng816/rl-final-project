@@ -28,10 +28,6 @@ def play_game(net, configs, device):
     dataset = []
     value = 0; t = 0.1; moves_count = 0
     while checkmate == False and current_board.actions() != []:
-        if moves_count <= 5:
-            t = 1
-        else:
-            t = 0.1
         moves_count += 1
         dataset.append(copy.deepcopy(ed.encode_board(current_board)))
         print(current_board.current_board); print(" ")
@@ -85,8 +81,8 @@ def play_game(net, configs, device):
         return None, dataset
 
 if __name__ == "__main__":
-    best_net_filename = "model_ckpts/cc3_current_net_small_step8000.pth"
-    configs = yaml.safe_load(open('configs/h5_w5_c3_small.yaml', 'r'))
+    best_net_filename = "model_ckpts/h5_w5_c3_current_net_large_step10000.pth"
+    configs = yaml.safe_load(open('configs/h5_w5_c3_large.yaml', 'r'))
     device = "cuda" if torch.cuda.is_available() else "cpu"
     best_cnet = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
     cuda = torch.cuda.is_available()
