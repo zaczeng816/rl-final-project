@@ -6,6 +6,7 @@ board:
 mcts:
   num_simulations: 800
   temperature_MCTS: 1.1
+  initial_move_count: 10
 
 self_play:
   num_games_per_MCTS_process: 256

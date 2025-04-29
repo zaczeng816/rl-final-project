@@ -197,7 +197,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
         value = 0
         move_count = 0
         while checkmate == False and current_board.actions() != []:
-            if move_count < 11:
+            if move_count < configs['mcts']['initial_move_count']:
                 t = configs['mcts']['temperature_MCTS']
             else:
                 t = 0.1
