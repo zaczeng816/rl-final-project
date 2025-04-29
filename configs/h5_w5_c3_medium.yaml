@@ -9,7 +9,7 @@ mcts:
   initial_move_count: 5
 
 self_play:
-  num_games_per_MCTS_process: 256
+  num_games_per_MCTS_process: 512
   num_evaluator_games: 64
   MCTS_num_processes: 8
 
