@@ -63,22 +63,21 @@ class UCTNode():
     def child_Q(self):
         return self.child_total_value / (1 + self.child_number_visits)
     
-    def child_U(self):
-        return math.sqrt(self.number_visits) * (
-            abs(self.child_priors) / (1 + self.child_number_visits))
+    def child_U(self, c_puct=1.0):
+        return c_puct * self.child_priors * math.sqrt(self.number_visits) / (1 + self.child_number_visits)
     
-    def best_child(self):
+    def best_child(self, c_puct=1.0):
         if self.action_idxes != []:
-            bestmove = self.child_Q() + self.child_U()
+            bestmove = self.child_Q() + self.child_U(c_puct)
             bestmove = self.action_idxes[np.argmax(bestmove[self.action_idxes])]
         else:
-            bestmove = np.argmax(self.child_Q() + self.child_U())
+            bestmove = np.argmax(self.child_Q() + self.child_U(c_puct))
         return bestmove
     
-    def select_leaf(self):
+    def select_leaf(self, c_puct=1.0):
         current = self
         while current.is_expanded:
-          best_move = current.best_child()
+          best_move = current.best_child(c_puct)
           current = current.maybe_add_child(best_move)
         return current
     
@@ -91,9 +90,11 @@ class UCTNode():
     
     def expand(self, child_priors):
         self.is_expanded = True
-        action_idxs = self.game.actions(); c_p = child_priors
+        action_idxs = self.game.actions()
+        c_p = child_priors
         if action_idxs == []:
             self.is_expanded = False
+            return
         self.action_idxes = action_idxs
         c_p[[i for i in range(len(child_priors)) if i not in action_idxs]] = 0.000000000 # mask all illegal actions
         if self.parent.parent == None: # add dirichlet noise to child_priors in root node
@@ -163,11 +164,11 @@ class BatchedEvaluator:
         self._buf_leaves.clear()
 
 
-def UCT_search(game_state, num_reads, net, temp, device):
+def UCT_search(game_state, num_reads, net, temp, device, c_puct=1.0):
     root = UCTNode(game_state, move=None, parent=DummyNode())
     evaluator = BatchedEvaluator(net, device)
     for _ in range(num_reads):
-        leaf = root.select_leaf()
+        leaf = root.select_leaf(c_puct)
         evaluator.enqueue(leaf)
     evaluator.flush()
     return root
