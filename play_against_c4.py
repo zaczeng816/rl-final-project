@@ -12,7 +12,7 @@ import pickle
 import datetime
 import yaml
 
-def play_game(net, configs):
+def play_game(net, configs, device):
     # Asks human what he/she wanna play as
     white = None; black = None
     while (True):
@@ -38,7 +38,7 @@ def play_game(net, configs):
         if current_board.player == 0:
             if white != None:
                 print("AI is thinking........")
-                root = UCT_search(current_board,configs['mcts']['num_simulations'],white,t)
+                root = UCT_search(current_board,configs['mcts']['num_simulations'],white,t,device)
                 policy = get_policy(root, t)
             else:
                 while(True):
@@ -49,7 +49,7 @@ def play_game(net, configs):
         elif current_board.player == 1:
             if black != None:
                 print("AI is thinking.............")
-                root = UCT_search(current_board,configs['mcts']['num_simulations'],black,t)
+                root = UCT_search(current_board,configs['mcts']['num_simulations'],black,t,device)
                 policy = get_policy(root, t)
             else:
                 while(True):
@@ -85,18 +85,19 @@ def play_game(net, configs):
         return None, dataset
 
 if __name__ == "__main__":
-    best_net_filename = "model_data/cc3_current_net_iter26.pth.tar"
+    best_net_filename = "model_ckpts/cc3_current_net_small_step8000.pth"
     configs = yaml.safe_load(open('configs/h5_w5_c3_small.yaml', 'r'))
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     best_cnet = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
     cuda = torch.cuda.is_available()
     if cuda:
         best_cnet.cuda()
     best_cnet.eval()
     checkpoint = torch.load(best_net_filename)
-    best_cnet.load_state_dict(checkpoint['state_dict'])
+    best_cnet.load_state_dict(checkpoint)
     play_again = True
     while(play_again == True):
-        play_game(best_cnet, configs)
+        play_game(best_cnet, configs, device)
         while(True):
             again = input("Do you wanna play again? (Y/N)\n")
             if again.lower() in ["y", "n"]:
