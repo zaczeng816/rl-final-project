@@ -177,9 +177,6 @@ def do_decode_n_move_pieces(board,move):
     return board
 
 def get_policy(root, temp=1):
-    #policy = np.zeros([root.game.num_cols], dtype=np.float32)
-    #for idx in np.where(root.child_number_visits!=0)[0]:
-    #    policy[idx] = ((root.child_number_visits[idx])**(1/temp))/sum(root.child_number_visits**(1/temp))
     return ((root.child_number_visits)**(1/temp))/sum(root.child_number_visits**(1/temp))
 
 @torch.no_grad()
