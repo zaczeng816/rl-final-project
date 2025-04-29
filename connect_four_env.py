@@ -78,7 +78,7 @@ class ConnectFourEnv(gym.Env):
 
         # If opponent goes first, let them play
         if self.auto_opponent and self.current_player == self.opponent_id:
-            col = self.opponent.play(self.board.copy())
+            col = self.opponent.play(self)
             self.place_piece(col)
             self.switch_player()
 
@@ -100,7 +100,7 @@ class ConnectFourEnv(gym.Env):
 
         # Opponent move
         if self.auto_opponent:
-            col = self.opponent.play(self.board.copy())
+            col = self.opponent.play(self)
             self.place_piece(col)
             self.switch_player()
             done, winner = self.check_board()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import os.path
 import torch
 import numpy as np
@@ -12,7 +13,7 @@ import pickle
 import datetime
 import yaml
 
-def play_game(net, configs):
+def play_game(net, configs, device):
     # Asks human what he/she wanna play as
     white = None; black = None
     while (True):
@@ -28,17 +29,13 @@ def play_game(net, configs):
     dataset = []
     value = 0; t = 0.1; moves_count = 0
     while checkmate == False and current_board.actions() != []:
-        if moves_count <= 5:
-            t = 1
-        else:
-            t = 0.1
         moves_count += 1
         dataset.append(copy.deepcopy(ed.encode_board(current_board)))
         print(current_board.current_board); print(" ")
         if current_board.player == 0:
             if white != None:
                 print("AI is thinking........")
-                root = UCT_search(current_board,configs['mcts']['num_simulations'],white,t)
+                root = UCT_search(current_board,configs['mcts']['num_simulations'],white,t,device)
                 policy = get_policy(root, t)
             else:
                 while(True):
@@ -49,7 +46,7 @@ def play_game(net, configs):
         elif current_board.player == 1:
             if black != None:
                 print("AI is thinking.............")
-                root = UCT_search(current_board,configs['mcts']['num_simulations'],black,t)
+                root = UCT_search(current_board,configs['mcts']['num_simulations'],black,t,device)
                 policy = get_policy(root, t)
             else:
                 while(True):
@@ -84,19 +81,29 @@ def play_game(net, configs):
         dataset.append("Nobody wins"); print("DRAW!!!!!")
         return None, dataset
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--net", type=str, default="model_ckpts/c4_current_net_trained_iter8.pth.tar", help="Path to the trained network")
+    parser.add_argument("--config", type=str, default="configs/h6_w7_c4_base.yaml", help="Path to the config file")
+    return parser.parse_args()
+
 if __name__ == "__main__":
-    best_net_filename = "model_data/cc3_current_net_iter26.pth.tar"
-    configs = yaml.safe_load(open('configs/h5_w5_c3_small.yaml', 'r'))
-    best_cnet = ConnectNet(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], num_blocks=configs['model']['num_blocks'])
-    cuda = torch.cuda.is_available()
-    if cuda:
-        best_cnet.cuda()
-    best_cnet.eval()
-    checkpoint = torch.load(best_net_filename)
-    best_cnet.load_state_dict(checkpoint['state_dict'])
+    args = parse_args()
+    configs = yaml.safe_load(open(args.config, 'r'))
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    net = ConnectNet(
+        num_cols=configs['board']['num_cols'], 
+        num_rows=configs['board']['num_rows'], 
+        num_blocks=configs['model']['num_blocks']
+    ).to(device)
+    net.eval()
+
+    checkpoint = torch.load(args.net)
+    net.load_state_dict(checkpoint['state_dict'])
     play_again = True
     while(play_again == True):
-        play_game(best_cnet, configs)
+        play_game(net, configs, device)
         while(True):
             again = input("Do you wanna play again? (Y/N)\n")
             if again.lower() in ["y", "n"]:

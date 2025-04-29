@@ -1,12 +1,12 @@
 board:
-  num_rows: 6
-  num_cols: 7
-  win_streak: 4
+  num_rows: 5
+  num_cols: 5
+  win_streak: 3
 
 mcts:
   num_simulations: 800
-  temperature_MCTS: 1.1
-  initial_move_count: 10
+  temperature_MCTS: 0.8
+  initial_move_count: 5
 
 self_play:
   num_games_per_MCTS_process: 512
@@ -14,12 +14,12 @@ self_play:
   MCTS_num_processes: 8
 
 model:
-  num_blocks: 5
+  num_blocks: 10
 
 training:
   max_train_steps: 50000
   iterate_steps: 5000
-  neural_net_name: "h6_w7_c4_current_net_small"
+  neural_net_name: "h5_w5_c3_current_net_medium"
   d0: 0.00001
   batch_size: 64
   max_norm: 1.0

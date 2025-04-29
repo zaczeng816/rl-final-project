@@ -9,11 +9,13 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.nn.utils import clip_grad_norm_
 from tqdm import tqdm
+from prodigyopt import Prodigy
 import yaml
 import wandb
 
 from MCTS import run_MCTS
 from alpha_net_c4 import AlphaLoss, ConnectNet, board_data
+from evaluate_arena import parallel_evaluate_net
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', \
                     datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
@@ -21,10 +23,8 @@ logger = logging.getLogger(__file__)
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--train_steps", type=int, default=50000, help="Number of steps to train the network")
-    parser.add_argument("--iterate_steps", type=int, default=500, help="Number of steps to iterate the network")
     parser.add_argument("--device", type=str, default="cuda", help="Device to run the network on")
-    parser.add_argument("--config", type=str, default="configs/h6_w7_c4_small.yaml", help="Config file")
+    parser.add_argument("--config", type=str, default="configs/h5_w5_c3_small.yaml", help="Config file")
     parser.add_argument("--weight_dtype", type=str, default="float32", help="Weight dtype")
     args = parser.parse_args()
 
@@ -45,7 +45,7 @@ if __name__ == "__main__":
         num_blocks=configs['model']['num_blocks']
     )
     net = net.to(args.device)
-    optimizer = optim.Adam(net.parameters(), lr=configs['training']['lr'], betas=(0.8, 0.999))
+    optimizer = Prodigy(net.parameters(), lr=1, slice_p=1, d0=configs['training']['d0'])
     criterion = AlphaLoss()
 
     weight_dtype = torch.float32 if args.weight_dtype == "float32" else torch.float16
@@ -54,17 +54,27 @@ if __name__ == "__main__":
     print(f"Weight dtype: {weight_dtype}")
     print(f"Device: {args.device}")
 
-    pbar = tqdm(range(initial_step, args.train_steps))
+    pbar = tqdm(range(initial_step, configs['training']['max_train_steps']))
     for global_step in pbar: 
-        if global_step % args.iterate_steps == 0:
+        if global_step % configs['training']['iterate_steps'] == 0:
             # save model
-            torch.save(net.state_dict(), f"model_ckpts/{configs['training']['neural_net_name']}_step{global_step}.pth")
+            save_path = f"model_ckpts/{configs['training']['neural_net_name']}_step{global_step}.pth"
+            torch.save(net.state_dict(), save_path)
+            logger.info(f"Saved model to {save_path}")
+
+            net.eval()
+
+            # evaluate model
+            winrate_ai_first, winrate_random_agent = parallel_evaluate_net(net, configs, args.device)
+            logs = {"winrate_ai_first": winrate_ai_first, "winrate_random_agent": winrate_random_agent}
+            print(logs)
+            wandb.log(logs, step=global_step)
 
             # generate dataset
-            net.eval()
-            run_MCTS(configs, net, start_idx=0, iteration=model_iteration)
-
-            data_path="./datasets/iter_%d/" % model_iteration
+            run_MCTS(configs, net, start_idx=0, iteration=model_iteration, device=args.device)
+            net.train()
+            
+            data_path = f"./datasets/iter_{model_iteration}/"
             datasets = []
             for idx,file in enumerate(os.listdir(data_path)):
                 filename = os.path.join(data_path,file)
@@ -72,11 +82,13 @@ if __name__ == "__main__":
                     datasets.extend(pickle.load(fo, encoding='bytes'))
             datasets = np.array(datasets, dtype=object)
             train_set = board_data(datasets)
-            train_loader = DataLoader(train_set, batch_size=configs['training']['batch_size'], shuffle=True, num_workers=8, pin_memory=False)
+            train_loader = DataLoader(train_set, batch_size=configs['training']['batch_size'], shuffle=True)
+
+            print(f"Iteration {model_iteration} train set size: {len(train_set)}")
+            print(f"Iteration {model_iteration} number of batches: {len(train_loader)}")
 
             model_iteration += 1
-            net.train()
-        
+
         batch = next(iter(train_loader))
         state, policy, value = batch
         state, policy, value = state.to(args.device, weight_dtype), policy.to(args.device, weight_dtype), value.to(args.device, weight_dtype)
@@ -88,7 +100,10 @@ if __name__ == "__main__":
         loss.backward()
         clip_grad_norm_(net.parameters(), configs['training']['max_norm'])
 
-        logs = {"loss": loss.detach().item()}
+        d = optimizer.param_groups[0]['d']
+        dlrs = optimizer.param_groups[0]['lr'] * d
+
+        logs = {"loss": loss.detach().item(), "dlrs": dlrs}
 
         pbar.set_postfix(logs)
 
