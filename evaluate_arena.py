@@ -1,16 +1,12 @@
 #!/usr/bin/env python
-
-import os.path
 import torch
+import yaml
 import numpy as np
+import encoder_decoder_c4 as ed
+
 from alpha_net_c4 import ConnectNet
 from connect_board import Board as cboard
-import encoder_decoder_c4 as ed
-import copy
 from MCTS import UCT_search, do_decode_n_move_pieces, get_policy
-import pickle
-import datetime
-import yaml
 from tqdm import trange
 from torch import multiprocessing as mp
 
