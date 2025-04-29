@@ -5,3 +5,4 @@ tqdm==4.67.1
 pyyaml==6.0.2
 wandb==0.19.10
 ipykernel==6.29.5
+prodigyopt==1.1.2
