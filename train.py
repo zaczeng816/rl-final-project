@@ -58,13 +58,16 @@ if __name__ == "__main__":
     for global_step in pbar: 
         if global_step % args.iterate_steps == 0:
             # save model
-            torch.save(net.state_dict(), f"model_ckpts/{configs['training']['neural_net_name']}_step{global_step}.pth")
+            save_path = f"model_ckpts/{configs['training']['neural_net_name']}_step{global_step}.pth"
+            torch.save(net.state_dict(), save_path)
+            logger.info(f"Saved model to {save_path}")
 
             # generate dataset
             net.eval()
-            run_MCTS(configs, net, start_idx=0, iteration=model_iteration)
-
-            data_path="./datasets/iter_%d/" % model_iteration
+            run_MCTS(configs, net, start_idx=0, iteration=model_iteration, device=args.device)
+            net.train()
+            
+            data_path = f"./datasets/iter_{model_iteration}/"
             datasets = []
             for idx,file in enumerate(os.listdir(data_path)):
                 filename = os.path.join(data_path,file)
@@ -72,11 +75,13 @@ if __name__ == "__main__":
                     datasets.extend(pickle.load(fo, encoding='bytes'))
             datasets = np.array(datasets, dtype=object)
             train_set = board_data(datasets)
-            train_loader = DataLoader(train_set, batch_size=configs['training']['batch_size'], shuffle=True, num_workers=8, pin_memory=False)
+            train_loader = DataLoader(train_set, batch_size=configs['training']['batch_size'], shuffle=True)
+
+            print(f"Iteration {model_iteration} train set size: {len(train_set)}")
+            print(f"Iteration {model_iteration} number of batches: {len(train_loader)}")
 
             model_iteration += 1
-            net.train()
-        
+
         batch = next(iter(train_loader))
         state, policy, value = batch
         state, policy, value = state.to(args.device, weight_dtype), policy.to(args.device, weight_dtype), value.to(args.device, weight_dtype)
