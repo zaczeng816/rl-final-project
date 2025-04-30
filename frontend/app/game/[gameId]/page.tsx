@@ -170,7 +170,24 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
           </div>
           <div className="flex gap-4">
             <Button 
-              onClick={() => router.push('/')} 
+              onClick={async () => {
+                try {
+                  const response = await fetch('http://localhost:8001/games', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ player_color: gameState.player_color }),
+                  });
+                  if (!response.ok) {
+                    throw new Error('Failed to create game');
+                  }
+                  const data = await response.json();
+                  router.push(`/game/${data.game_id}`);
+                } catch (error) {
+                  console.error('Error creating game:', error);
+                }
+              }}
               variant="default"
               className="transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90"
             >
