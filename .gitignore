@@ -3,6 +3,7 @@ model_ckpts/
 model_data/
 datasets/
 evaluator_data/
+games/
 
 wandb/
 
