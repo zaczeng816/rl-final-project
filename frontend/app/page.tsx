@@ -45,21 +45,21 @@ export default function Home() {
         </Button>
       ) : (
         <div className="flex flex-col items-center gap-4">
-          <h2 className="text-2xl font-semibold">Choose Your Color</h2>
+          <h2 className="text-2xl font-semibold">Choose Your Piece</h2>
           <div className="flex gap-4">
             <Button 
               onClick={() => handleCreateGame('black')}
               disabled={loading}
               className="text-lg px-8 py-6 bg-black text-white hover:bg-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-lg"
             >
-              Play as Black (First)
+              Play as O (First)
             </Button>
             <Button 
               onClick={() => handleCreateGame('white')}
               disabled={loading}
               className="text-lg px-8 py-6 bg-white text-black border-2 border-black hover:bg-gray-100 transition-all duration-300 hover:scale-105 hover:shadow-lg"
             >
-              Play as White (Second)
+              Play as X (Second)
             </Button>
           </div>
         </div>

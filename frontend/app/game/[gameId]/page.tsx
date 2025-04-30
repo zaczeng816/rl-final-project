@@ -190,7 +190,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
           <div className="text-center">
             <h2 className="text-2xl font-bold">Game ID: {gameState.game_id}</h2>
             <p className="text-lg mt-2">
-              You are playing as <span className="font-semibold">{gameState.player_color}</span>
+              You are playing as <span className="font-semibold">{gameState.player_color === 'black' ? 'O' : 'X'}</span>
             </p>
             <p className="text-lg">
               {isPlayerTurn ? 'Your turn' : aiThinking ? 'AI is thinking...' : 'AI is making a move...'}
