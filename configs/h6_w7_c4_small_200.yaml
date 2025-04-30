@@ -9,15 +9,15 @@ mcts:
 model:
   num_blocks: 5
 self_play:
-  MCTS_num_processes: 16
-  batch_size: 4
+  MCTS_num_processes: 8
+  batch_size: 8
   c_puct: 2.5
-  num_evaluator_games: 8
-  num_games_per_MCTS_process: 64
+  num_evaluator_games: 128
+  num_games: 1024
 training:
-  batch_size: 1024
+  batch_size: 64
   d0: 1.0e-05
-  iterate_steps: 2000
+  iterate_steps: 20000
   max_norm: 1.0
-  max_train_steps: 10000
+  max_train_steps: 100000
   neural_net_name: h6_w7_c4_current_net_small_200
