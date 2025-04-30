@@ -1,6 +1,6 @@
 import uuid
 import json
-from typing import Optional
+from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -12,6 +12,9 @@ from connect_board import Board as cboard, encode_board, decode_board
 from MCTS import UCT_search, get_policy
 import yaml
 import os
+import time
+import random
+import string
 
 # Get configuration from environment variables with defaults
 CONFIG_PATH = os.getenv('CONNECT4_CONFIG', 'configs/h6_w7_c4_small_600.yaml')
@@ -57,6 +60,7 @@ class GameState(BaseModel):
     game_over: bool
     winner: Optional[str] = None
     player_color: str  # 'black' or 'white'
+    created_at: int
 
 class MoveRequest(BaseModel):
     column: int
@@ -78,8 +82,20 @@ class GameConfig(BaseModel):
 class CreateGameRequest(BaseModel):
     player_color: str
 
+class GameHistory(BaseModel):
+    game_id: str
+    created_at: int
+    player_color: str
+    winner: Optional[str]
+    moves_count: int
+
+def generate_game_id() -> str:
+    timestamp = int(time.time() * 1000)
+    random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+    return f"{timestamp}-{random_str}"
+
 def create_new_game(player_color: str) -> GameState:
-    game_id = str(uuid.uuid4())
+    game_id = generate_game_id()
     board = cboard(
         num_cols=configs['board']['num_cols'],
         num_rows=configs['board']['num_rows'],
@@ -92,11 +108,14 @@ def create_new_game(player_color: str) -> GameState:
         current_player=0,  # Black starts first
         moves_count=0,
         game_over=False,
-        player_color=player_color
+        player_color=player_color,
+        created_at=int(time.time() * 1000)
     )
     
     # Store in Redis
     redis_client.set(f"game:{game_id}", json.dumps(game_state.dict()))
+    # Add to game history list
+    redis_client.lpush("game_history", game_id)
     return game_state
 
 def get_game_state(game_id: str) -> GameState:
@@ -122,6 +141,39 @@ def make_ai_move(board: cboard) -> cboard:
     policy = get_policy(root, 0.1)
     ai_move = np.random.choice(np.arange(board.num_cols), p=policy)
     return do_decode_n_move_pieces(board, ai_move)
+
+def get_game_history(limit: int = 10) -> List[GameHistory]:
+    try:
+        game_ids = redis_client.lrange("game_history", 0, limit - 1)
+        history = []
+        for game_id in game_ids:
+            try:
+                game_id = game_id.decode('utf-8')
+                game_data = redis_client.get(f"game:{game_id}")
+                if game_data:
+                    game_state = GameState(**json.loads(game_data))
+                    history.append(GameHistory(
+                        game_id=game_state.game_id,
+                        created_at=game_state.created_at,
+                        player_color=game_state.player_color,
+                        winner=game_state.winner,
+                        moves_count=game_state.moves_count
+                    ))
+            except Exception as e:
+                print(f"Error processing game {game_id}: {str(e)}")
+                continue
+        return history
+    except Exception as e:
+        print(f"Error in get_game_history: {str(e)}")
+        return []
+
+@app.get("/test")
+async def test_endpoint():
+    return {"message": "API is working"}
+
+@app.get("/games/history", response_model=List[GameHistory])
+async def get_history(limit: int = 10):
+    return get_game_history(limit)
 
 @app.post("/games", response_model=GameResponse)
 async def create_game(request: CreateGameRequest):

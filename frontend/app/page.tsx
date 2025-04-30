@@ -1,13 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from 'date-fns';
+
+interface GameHistory {
+  game_id: string;
+  created_at: number;
+  player_color: string;
+  winner: string | null;
+  moves_count: number;
+}
 
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showSelection, setShowSelection] = useState(false);
+  const [gameHistory, setGameHistory] = useState<GameHistory[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const response = await fetch('http://localhost:8001/games/history');
+        if (!response.ok) {
+          console.error('Failed to fetch game history:', response.status);
+          setGameHistory([]);
+          return;
+        }
+        const data = await response.json();
+        setGameHistory(data || []);
+      } catch (error) {
+        console.error('Error fetching game history:', error);
+        setGameHistory([]);
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, []);
 
   const handleCreateGame = async (playerColor: 'black' | 'white') => {
     setLoading(true);
@@ -31,39 +65,101 @@ export default function Home() {
     }
   };
 
+  const formatDate = (timestamp: number) => {
+    return format(new Date(timestamp), 'MMM d, yyyy HH:mm:ss');
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 gap-8">
       <h1 className="text-4xl font-bold">Connect 4</h1>
       
-      {!showSelection ? (
-        <Button 
-          onClick={() => setShowSelection(true)}
-          disabled={loading}
-          className="text-lg px-8 py-6 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90"
-        >
-          Start New Game
-        </Button>
-      ) : (
-        <div className="flex flex-col items-center gap-4">
-          <h2 className="text-2xl font-semibold">Choose Your Piece</h2>
-          <div className="flex gap-4">
+      <Tabs defaultValue="new-game" className="w-full max-w-2xl">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger 
+            value="new-game"
+            className="hover:scale-105 data-[state=active]:scale-105 transition-transform duration-200"
+          >
+            New Game
+          </TabsTrigger>
+          <TabsTrigger 
+            value="history"
+            className="hover:scale-105 data-[state=active]:scale-105 transition-transform duration-200"
+          >
+            Game History
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="new-game" className="mt-6">
+          {!showSelection ? (
             <Button 
-              onClick={() => handleCreateGame('black')}
+              onClick={() => setShowSelection(true)}
               disabled={loading}
-              className="text-lg px-8 py-6 bg-black text-white hover:bg-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+              className="text-lg px-8 py-6 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90"
             >
-              Play as O (First)
+              Start New Game
             </Button>
-            <Button 
-              onClick={() => handleCreateGame('white')}
-              disabled={loading}
-              className="text-lg px-8 py-6 bg-white text-black border-2 border-black hover:bg-gray-100 transition-all duration-300 hover:scale-105 hover:shadow-lg"
-            >
-              Play as X (Second)
-            </Button>
-          </div>
-        </div>
-      )}
+          ) : (
+            <div className="flex flex-col items-center gap-4">
+              <h2 className="text-2xl font-semibold">Choose Your Piece</h2>
+              <div className="flex gap-4">
+                <Button 
+                  onClick={() => handleCreateGame('black')}
+                  disabled={loading}
+                  className="text-lg px-8 py-6 bg-black text-white hover:bg-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                >
+                  Play as O (First)
+                </Button>
+                <Button 
+                  onClick={() => handleCreateGame('white')}
+                  disabled={loading}
+                  className="text-lg px-8 py-6 bg-white text-black border-2 border-black hover:bg-gray-100 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                >
+                  Play as X (Second)
+                </Button>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="history" className="mt-6">
+          {historyLoading ? (
+            <div className="text-center">Loading game history...</div>
+          ) : gameHistory.length === 0 ? (
+            <div className="text-center">No games played yet</div>
+          ) : (
+            <div className="w-full space-y-4">
+              {gameHistory.map((game) => (
+                <div 
+                  key={game.game_id}
+                  className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push(`/game/${game.game_id}`)}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="font-semibold">
+                        Game {game.game_id.split('-')[0]}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {formatDate(game.created_at)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">
+                        Played as {game.player_color === 'black' ? 'O' : 'X'}
+                      </div>
+                      <div className="text-sm">
+                        {game.winner ? (
+                          game.winner === game.player_color ? 'You won!' : 'AI won'
+                        ) : game.moves_count > 0 ? 'In progress' : 'Not started'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
