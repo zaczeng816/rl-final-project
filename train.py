@@ -53,6 +53,8 @@ if __name__ == "__main__":
         num_rows=configs['board']['num_rows'], 
         num_blocks=configs['model']['num_blocks']
     )
+    total_params = sum(p.numel() for p in net.parameters())
+
     net = net.to(args.device)
     optimizer = Prodigy(net.parameters(), lr=1, slice_p=1, d0=configs['training']['d0'])
     criterion = AlphaLoss()
@@ -60,6 +62,7 @@ if __name__ == "__main__":
     weight_dtype = torch.float32 if args.weight_dtype == "float32" else torch.float16
     net = net.to(weight_dtype)
 
+    print(f"Total parameters: {total_params:,}")
     print(f"Weight dtype: {weight_dtype}")
     print(f"Device: {args.device}")
 
