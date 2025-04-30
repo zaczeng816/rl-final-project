@@ -6,7 +6,7 @@ import encoder_decoder_c4 as ed
 
 from alpha_net_c4 import ConnectNet
 from connect_board import Board as cboard
-from MCTS import UCT_search, do_decode_n_move_pieces, get_policy
+from MCTS import UCT_search, get_policy
 from tqdm import trange
 from torch import multiprocessing as mp
 
@@ -67,7 +67,7 @@ def play_game(net, configs, device, ai_first: bool):
                 policy = get_policy(root, t)
 
         next_move = np.random.choice(np.arange(current_board.num_cols), p = policy)
-        current_board = do_decode_n_move_pieces(current_board, next_move) # decode move and move piece(s)
+        current_board.drop_piece(next_move)
 
         if current_board.check_winner() == True: # someone wins
             if current_board.player == 0: # black wins
