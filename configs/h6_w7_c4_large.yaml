@@ -10,10 +10,10 @@ model:
   num_blocks: 20
 self_play:
   MCTS_num_processes: 8
-  batch_size: 8
+  batch_size: 4
   c_puct: 2.5
   num_evaluator_games: 128
-  num_games: 1024
+  num_games: 4096
 training:
   batch_size: 64
   d0: 1.0e-05
