@@ -63,6 +63,11 @@ class ConnectFourEnv(gym.Env):
             low=0, high=2, shape=(self.ROWS, self.COLS), dtype=np.int8
         )
 
+        self.board = np.zeros((self.ROWS, self.COLS), dtype=np.int8)
+        self.last_move = None
+        self.invalid_move = False
+        self.current_player = None
+
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         # empty board
@@ -179,12 +184,12 @@ class ConnectFourEnv(gym.Env):
                 }
                 print("| " + " ".join(symbols[c] for c in row) + " |")
             # Legend
-            print("\nLegend:")
-            print(f"  🟡 {self.main_player_name} (Player {self.main_player_id})")
-            print(f"  🟣 {self.opponent_name} (Player {self.opponent_id})")
+            # print("\nLegend:")
+            # print(f"  🟡 {self.main_player_name} (Player {self.main_player_id})")
+            # print(f"  🟣 {self.opponent_name} (Player {self.opponent_id})")
             return
 
-        # initialize
+        # ======= to be replaced with other UI:======= #
         if self.window is None:
             pygame.init()
             size = 32
@@ -235,6 +240,8 @@ class ConnectFourEnv(gym.Env):
         self.window.blit(canvas, (0,0))
         pygame.display.flip()
         pygame.event.pump()
+
+        # ======================================================== #
 
     def clone(self):
         new = ConnectFourEnv(
