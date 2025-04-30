@@ -34,7 +34,7 @@ class Board():
         raise ValueError("Invalid move")
     
     def check_winner(self):
-        target = "O" if self.player == 0 else "X"
+        target = "O" if self.player == 1 else "X"  # Check for the previous player's pieces
 
         directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
 

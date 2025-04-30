@@ -213,7 +213,8 @@ async def make_move(game_id: str, move: MoveRequest):
     game_over = False
     if board.check_winner():
         game_over = True
-        winner = "black" if board.player == 0 else "white"
+        # The winner is the previous player (the one who just made the move)
+        winner = "black" if game_state.current_player == 0 else "white"
     elif not board.actions():
         game_over = True
     
@@ -277,7 +278,8 @@ async def make_ai_move_endpoint(game_id: str):
     game_over = False
     if board.check_winner():
         game_over = True
-        winner = "black" if board.player == 0 else "white"
+        # The winner is the previous player (the one who just made the move)
+        winner = "black" if game_state.current_player == 0 else "white"
     elif not board.actions():
         game_over = True
     
