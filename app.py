@@ -7,10 +7,9 @@ from pydantic import BaseModel
 import redis
 import torch
 import numpy as np
-from alpha_net_c4 import ConnectNet
-from connect_board import Board as cboard
-import encoder_decoder_c4 as ed
-from MCTS import UCT_search, do_decode_n_move_pieces, get_policy
+from model import ConnectNet
+from connect_board import Board as cboard, encode_board, decode_board
+from MCTS import UCT_search, get_policy
 import yaml
 import os
 
@@ -102,6 +101,14 @@ def get_game_state(game_id: str) -> GameState:
 
 def update_game_state(game_state: GameState):
     redis_client.set(f"game:{game_state.game_id}", json.dumps(game_state.dict()))
+
+def do_decode_n_move_pieces(board: cboard, move: int) -> cboard:
+    """Make a move on the board and return the updated board."""
+    try:
+        board.drop_piece(move)
+        return board
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/games", response_model=GameResponse)
 async def create_game():

@@ -7,4 +7,4 @@ export CONNECT4_CHECKPOINT="model_ckpts/cc4_current_net__iter7.pth.tar"
 sudo docker run -d --name redis -p 6379:6379 redis:latest
 
 # Start FastAPI server
-uvicorn backend.app:app --reload --port 8001
+uvicorn app:app --reload --port 8001

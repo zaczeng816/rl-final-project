@@ -121,7 +121,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
           ) : (
             <p className="text-xl mb-4">It's a draw!</p>
           )}
-          <div className={`grid grid-cols-${gameConfig.num_cols} gap-2 mb-8`}>
+          <div className="grid gap-2 mb-8" style={{ gridTemplateColumns: `repeat(${gameConfig.num_cols}, minmax(0, 1fr))` }}>
             {gameState.board.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                 <div
@@ -153,29 +153,32 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
       ) : (
         <>
           <h2 className="text-2xl font-bold">Game ID: {gameState.game_id}</h2>
-          <div className={`grid grid-cols-${gameConfig.num_cols} gap-2`}>
-            {gameState.board.map((row, rowIndex) =>
-              row.map((cell, colIndex) => (
-                <div
-                  key={`${rowIndex}-${colIndex}`}
-                  className="w-12 h-12 border border-gray-300 flex items-center justify-center"
-                >
-                  {cell}
+          <div className="flex flex-col items-center gap-4">
+            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${gameConfig.num_cols}, minmax(0, 1fr))` }}>
+              {gameState.board.map((row, rowIndex) =>
+                row.map((cell, colIndex) => (
+                  <div
+                    key={`${rowIndex}-${colIndex}`}
+                    className="w-12 h-12 border border-gray-300 flex items-center justify-center"
+                  >
+                    {cell}
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${gameConfig.num_cols}, minmax(0, 1fr))` }}>
+              {Array.from({ length: gameConfig.num_cols }).map((_, index) => (
+                <div key={index} className="w-12 flex justify-center">
+                  <Button
+                    onClick={() => handleMakeMove(index)}
+                    disabled={gameState.game_over}
+                    className="transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90 disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:bg-primary"
+                  >
+                    Drop
+                  </Button>
                 </div>
-              ))
-            )}
-          </div>
-          <div className="flex gap-2">
-            {Array.from({ length: gameConfig.num_cols }).map((_, index) => (
-              <Button
-                key={index}
-                onClick={() => handleMakeMove(index)}
-                disabled={gameState.game_over}
-                className="transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90 disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:bg-primary"
-              >
-                Drop
-              </Button>
-            ))}
+              ))}
+            </div>
           </div>
         </>
       )}
