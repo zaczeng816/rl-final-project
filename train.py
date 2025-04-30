@@ -12,6 +12,7 @@ from tqdm import tqdm
 from prodigyopt import Prodigy
 import yaml
 import wandb
+import random
 
 from MCTS import run_MCTS
 from alpha_net_c4 import AlphaLoss, ConnectNet, board_data
@@ -20,6 +21,11 @@ from evaluate_arena import parallel_evaluate_net
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', \
                     datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 logger = logging.getLogger(__file__)
+
+def seed_everything(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -34,6 +40,8 @@ if __name__ == "__main__":
     os.makedirs("model_ckpts", exist_ok=True)
 
     wandb.init(project="connect4", config=configs)
+
+    seed_everything()
 
     initial_step = 0
     model_iteration = 0
