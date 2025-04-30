@@ -16,7 +16,7 @@ self_play:
 training:
   batch_size: 64
   d0: 1.0e-05
-  iterate_steps: 10000
+  iterate_steps: 20000
   max_norm: 1.0
-  max_train_steps: 50000
+  max_train_steps: 100000
   neural_net_name: h6_w7_c4_current_net_medium
