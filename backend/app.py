@@ -2,6 +2,7 @@ import uuid
 import json
 from typing import Optional
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import redis
 import torch
@@ -24,6 +25,16 @@ if not os.path.exists(CHECKPOINT_PATH):
     raise FileNotFoundError(f"Checkpoint file not found: {CHECKPOINT_PATH}")
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Redis connection
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
@@ -115,7 +126,14 @@ async def make_move(game_id: str, move: MoveRequest):
     game_state = get_game_state(game_id)
     
     if game_state.game_over:
-        raise HTTPException(status_code=400, detail="Game is already over")
+        return GameResponse(
+            game_id=game_state.game_id,
+            board=game_state.board,
+            current_player=game_state.current_player,
+            game_over=game_state.game_over,
+            winner=game_state.winner,
+            message="Game is already over"
+        )
     
     # Create board from state
     board = cboard(
@@ -165,7 +183,14 @@ async def make_ai_move(game_id: str):
     game_state = get_game_state(game_id)
     
     if game_state.game_over:
-        raise HTTPException(status_code=400, detail="Game is already over")
+        return GameResponse(
+            game_id=game_state.game_id,
+            board=game_state.board,
+            current_player=game_state.current_player,
+            game_over=game_state.game_over,
+            winner=game_state.winner,
+            message="Game is already over"
+        )
     
     # Create board from state
     board = cboard(
