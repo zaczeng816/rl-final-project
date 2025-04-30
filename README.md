@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-conda create -n rl-final python==3.10
+conda create -n rl-final python==3.10 -y
 ```
 
 ```bash
