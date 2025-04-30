@@ -58,7 +58,7 @@ def play_game(net, configs, device):
             elif current_board.player == 1: # white wins
                 value = 1
             checkmate = True
-            
+
     dataset.append(encode_board(current_board))
     print(current_board.current_board); print(" ")
     if value == -1:
@@ -96,7 +96,10 @@ if __name__ == "__main__":
     net.eval()
 
     checkpoint = torch.load(args.net)
-    net.load_state_dict(checkpoint['state_dict'])
+    if 'state_dict' in checkpoint:
+        net.load_state_dict(checkpoint['state_dict'])
+    else:
+        net.load_state_dict(checkpoint)
     play_again = True
     while(play_again == True):
         play_game(net, configs, device)
