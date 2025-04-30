@@ -81,8 +81,10 @@ class UCTNode():
     
     def add_dirichlet_noise(self,action_idxs,child_priors):
         valid_child_priors = child_priors[action_idxs] # select only legal moves entries in child_priors array
-        valid_child_priors = 0.75*valid_child_priors + 0.25*np.random.dirichlet(np.zeros([len(valid_child_priors)], \
-                                                                                          dtype=np.float32)+192)
+        valid_child_priors = 0.75 * valid_child_priors \
+            + 0.25 * np.random.dirichlet(
+                np.zeros([len(valid_child_priors)], dtype=np.float32) + 0.03 * len(valid_child_priors)
+            )
         child_priors[action_idxs] = valid_child_priors
         return child_priors
     
