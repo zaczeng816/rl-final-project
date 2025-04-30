@@ -56,6 +56,7 @@ class GameState(BaseModel):
     moves_count: int
     game_over: bool
     winner: Optional[str] = None
+    player_color: str  # 'black' or 'white'
 
 class MoveRequest(BaseModel):
     column: int
@@ -67,13 +68,17 @@ class GameResponse(BaseModel):
     game_over: bool
     winner: Optional[str] = None
     message: str
+    player_color: str
 
 class GameConfig(BaseModel):
     num_cols: int
     num_rows: int
     win_streak: int
 
-def create_new_game() -> GameState:
+class CreateGameRequest(BaseModel):
+    player_color: str
+
+def create_new_game(player_color: str) -> GameState:
     game_id = str(uuid.uuid4())
     board = cboard(
         num_cols=configs['board']['num_cols'],
@@ -84,9 +89,10 @@ def create_new_game() -> GameState:
     game_state = GameState(
         game_id=game_id,
         board=board.current_board.tolist(),
-        current_player=0,
+        current_player=0,  # Black starts first
         moves_count=0,
-        game_over=False
+        game_over=False,
+        player_color=player_color
     )
     
     # Store in Redis
@@ -110,15 +116,43 @@ def do_decode_n_move_pieces(board: cboard, move: int) -> cboard:
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+def make_ai_move(board: cboard) -> cboard:
+    """Make an AI move and return the updated board."""
+    root = UCT_search(board, configs['mcts']['num_simulations'], net, 0.1, device)
+    policy = get_policy(root, 0.1)
+    ai_move = np.random.choice(np.arange(board.num_cols), p=policy)
+    return do_decode_n_move_pieces(board, ai_move)
+
 @app.post("/games", response_model=GameResponse)
-async def create_game():
-    game_state = create_new_game()
+async def create_game(request: CreateGameRequest):
+    if request.player_color not in ['black', 'white']:
+        raise HTTPException(status_code=400, detail="Invalid player color. Must be 'black' or 'white'")
+    
+    game_state = create_new_game(request.player_color)
+    
+    # If player is white, make AI's first move
+    if request.player_color == 'white':
+        board = cboard(
+            num_cols=configs['board']['num_cols'],
+            num_rows=configs['board']['num_rows'],
+            win_streak=configs['board']['win_streak']
+        )
+        board.current_board = np.array(game_state.board)
+        board.player = game_state.current_player
+        
+        board = make_ai_move(board)
+        game_state.board = board.current_board.tolist()
+        game_state.current_player = 1 - game_state.current_player
+        game_state.moves_count += 1
+        update_game_state(game_state)
+    
     return GameResponse(
         game_id=game_state.game_id,
         board=game_state.board,
         current_player=game_state.current_player,
         game_over=game_state.game_over,
-        message="New game created"
+        message="New game created",
+        player_color=game_state.player_color
     )
 
 @app.get("/games/{game_id}", response_model=GameResponse)
@@ -130,7 +164,8 @@ async def get_game(game_id: str):
         current_player=game_state.current_player,
         game_over=game_state.game_over,
         winner=game_state.winner,
-        message="Game state retrieved"
+        message="Game state retrieved",
+        player_color=game_state.player_color
     )
 
 @app.post("/games/{game_id}/move", response_model=GameResponse)
@@ -144,8 +179,18 @@ async def make_move(game_id: str, move: MoveRequest):
             current_player=game_state.current_player,
             game_over=game_state.game_over,
             winner=game_state.winner,
-            message="Game is already over"
+            message="Game is already over",
+            player_color=game_state.player_color
         )
+    
+    # Check if it's the player's turn
+    is_player_turn = (
+        (game_state.current_player == 0 and game_state.player_color == 'black') or
+        (game_state.current_player == 1 and game_state.player_color == 'white')
+    )
+    
+    if not is_player_turn:
+        raise HTTPException(status_code=400, detail="Not your turn")
     
     # Create board from state
     board = cboard(
@@ -160,10 +205,10 @@ async def make_move(game_id: str, move: MoveRequest):
     if move.column < 0 or move.column >= board.num_cols:
         raise HTTPException(status_code=400, detail="Invalid column")
     
-    # Make move
+    # Make player's move
     board = do_decode_n_move_pieces(board, move.column)
     
-    # Check for winner
+    # Check for winner after player's move
     winner = None
     game_over = False
     if board.check_winner():
@@ -187,11 +232,12 @@ async def make_move(game_id: str, move: MoveRequest):
         current_player=game_state.current_player,
         game_over=game_state.game_over,
         winner=game_state.winner,
-        message="Move made successfully"
+        message="Move made successfully",
+        player_color=game_state.player_color
     )
 
 @app.post("/games/{game_id}/ai-move", response_model=GameResponse)
-async def make_ai_move(game_id: str):
+async def make_ai_move_endpoint(game_id: str):
     game_state = get_game_state(game_id)
     
     if game_state.game_over:
@@ -201,8 +247,18 @@ async def make_ai_move(game_id: str):
             current_player=game_state.current_player,
             game_over=game_state.game_over,
             winner=game_state.winner,
-            message="Game is already over"
+            message="Game is already over",
+            player_color=game_state.player_color
         )
+    
+    # Check if it's the AI's turn
+    is_ai_turn = (
+        (game_state.current_player == 0 and game_state.player_color == 'white') or
+        (game_state.current_player == 1 and game_state.player_color == 'black')
+    )
+    
+    if not is_ai_turn:
+        raise HTTPException(status_code=400, detail="Not AI's turn")
     
     # Create board from state
     board = cboard(
@@ -213,15 +269,10 @@ async def make_ai_move(game_id: str):
     board.current_board = np.array(game_state.board)
     board.player = game_state.current_player
     
-    # Get AI move
-    root = UCT_search(board, configs['mcts']['num_simulations'], net, 0.1, device)
-    policy = get_policy(root, 0.1)
-    ai_move = np.random.choice(np.arange(board.num_cols), p=policy)
+    # Make AI move
+    board = make_ai_move(board)
     
-    # Make move
-    board = do_decode_n_move_pieces(board, ai_move)
-    
-    # Check for winner
+    # Check for winner after AI's move
     winner = None
     game_over = False
     if board.check_winner():
@@ -245,7 +296,8 @@ async def make_ai_move(game_id: str):
         current_player=game_state.current_player,
         game_over=game_state.game_over,
         winner=game_state.winner,
-        message=f"AI made move in column {ai_move + 1}"
+        message="AI move made successfully",
+        player_color=game_state.player_color
     )
 
 @app.get("/config", response_model=GameConfig)
