@@ -82,14 +82,21 @@ if __name__ == "__main__":
                     datasets.extend(pickle.load(fo, encoding='bytes'))
             datasets = np.array(datasets, dtype=object)
             train_set = board_data(datasets)
-            train_loader = DataLoader(train_set, batch_size=configs['training']['batch_size'], shuffle=True)
+            train_loader = DataLoader(train_set, batch_size=configs['training']['batch_size'], shuffle=True, prefetch_factor=8, num_workers=8, pin_memory=True, persistent_workers=True)
 
             print(f"Iteration {model_iteration} train set size: {len(train_set)}")
             print(f"Iteration {model_iteration} number of batches: {len(train_loader)}")
 
+            train_iter = iter(train_loader)
+
             model_iteration += 1
 
-        batch = next(iter(train_loader))
+        try:
+            batch = next(train_iter)
+        except StopIteration:
+            train_iter = iter(train_loader)
+            batch = next(train_iter)
+
         state, policy, value = batch
         state, policy, value = state.to(args.device, weight_dtype), policy.to(args.device, weight_dtype), value.to(args.device, weight_dtype)
 
@@ -110,4 +117,5 @@ if __name__ == "__main__":
         optimizer.step()
         optimizer.zero_grad()
 
-        wandb.log(logs, step=global_step)
+        if global_step % 10 == 0:
+            wandb.log(logs, step=global_step)
