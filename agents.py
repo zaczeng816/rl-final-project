@@ -1,7 +1,7 @@
 import numpy as np
 import yaml
 import torch
-from alpha_net_c4 import ConnectNet
+from model import ConnectNet
 from MCTS import UCT_search, get_policy
 from connect_board import Board
 from connect_four_env import ConnectFourEnv
