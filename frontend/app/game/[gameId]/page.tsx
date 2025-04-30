@@ -149,7 +149,9 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
           <h2 className="text-2xl font-bold mb-4">Game Over!</h2>
           {gameState.winner ? (
             <p className="text-xl mb-4">
-              {gameState.winner === gameState.player_color ? "Congratulations! You won!" : "The AI won this game."}
+              {gameState.winner === gameState.player_color 
+                ? "Congratulations! You won!" 
+                : "The AI won this game. Better luck next time!"}
             </p>
           ) : (
             <p className="text-xl mb-4">It's a draw!</p>

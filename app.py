@@ -47,7 +47,7 @@ net = ConnectNet(
 ).to(device)
 net.eval()
 checkpoint = torch.load(CHECKPOINT_PATH)
-net.load_state_dict(checkpoint['state_dict'])
+net.load_state_dict(checkpoint)
 
 class GameState(BaseModel):
     game_id: str
