@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-import pickle
 import os
+
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+
+import pickle
 import collections
 import numpy as np
 import math
@@ -8,6 +12,7 @@ import copy
 import torch
 import torch.multiprocessing as mp
 import datetime
+import queue
 
 from tqdm import tqdm
 from loguru import logger
@@ -153,11 +158,16 @@ def get_policy(root, temp=1):
 
 
 @torch.no_grad()
-def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, device):
+def MCTS_self_play(game_queue, connectnet, cpu, configs, iteration, device, progress_queue=None):
     os.makedirs("datasets/iter_%d" % iteration, exist_ok=True)
     os.makedirs("games", exist_ok=True)
     
-    for idxx in tqdm(range(start_idx, num_games + start_idx), position=cpu):
+    while True:
+        try:
+            idxx = game_queue.get_nowait()
+        except queue.Empty:
+            break
+            
         current_board = Board(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], win_streak=configs['board']['win_streak'])
         checkmate = False
         dataset = [] # to get state, policy, value for neural network training
@@ -167,7 +177,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
         
         # Create a game replay file for the first 5 games for debugging
         game_replay = []
-        should_log = (cpu == 0 and idxx < start_idx + 5)
+        should_log = (cpu == 0 and idxx < 5)
         
         while checkmate == False and current_board.actions() != []:
             # high temperature for initial moves for exploration
@@ -209,21 +219,51 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
         dataset_p = [(s,p,value) for s,p in dataset]
         del dataset
         save_as_pickle("iter_%d/" % iteration + "dataset_iter%d_cpu%i_%i_%s" % (iteration, cpu, idxx, datetime.datetime.today().strftime("%Y-%m-%d")), dataset_p)
+        
+        # Update progress bar
+        if progress_queue is not None:
+            progress_queue.put(1)
    
 def run_MCTS(configs, connectnet, start_idx=0, iteration=0, device="cuda"):
     connectnet.share_memory()
     mp.set_start_method('spawn', force=True)
 
     n_procs = configs['self_play']['MCTS_num_processes']
-    games_per_proc = configs['self_play']['num_games_per_MCTS_process']
+    total_games = configs['self_play']['num_games']
+    
+    # Create a queue of game indices
+    game_queue = mp.Queue()
+    for i in range(total_games):
+        game_queue.put(start_idx + i)
+    
+    # Create a queue for progress tracking
+    progress_queue = mp.Queue()
+    
+    # Create progress bar
+    pbar = tqdm(total=total_games, desc="Self-play games")
+    
     procs = []
     for cpu in range(n_procs):
-        s = start_idx + cpu * games_per_proc
         p = mp.Process(
             target=MCTS_self_play,
-            args=(connectnet, games_per_proc, s, cpu, configs, iteration, device),
+            args=(game_queue, connectnet, cpu, configs, iteration, device, progress_queue),
         )
         p.start()
         procs.append(p)
+    
+    # Update progress bar based on completed games
+    completed_games = 0
+    while completed_games < total_games:
+        try:
+            progress_queue.get(timeout=0.1)
+            completed_games += 1
+            pbar.update(1)
+        except queue.Empty:
+            # Check if all processes are still alive
+            if not any(p.is_alive() for p in procs):
+                break
+    
     for p in procs:
         p.join()
+    
+    pbar.close()
