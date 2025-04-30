@@ -1,7 +1,6 @@
 import argparse
 import yaml
 import numpy as np
-import importlib
 from connect_four_env import ConnectFourEnv
 from agents import HeuristicAgent, AlphaZeroAgent, RandomAgent
 

@@ -133,8 +133,7 @@ class AlphaZeroAgent():
         if model_path.endswith('.pth.tar'):
           model.load_state_dict(checkpoint['state_dict'])
         elif model_path.endswith('.pth'):
-          state_dict = checkpoint
-          model.load_state_dict(state_dict)
+          model.load_state_dict(checkpoint)
         else:
           raise ValueError(f"Unrecognized model extension: {model_path}")
         self.model = model
@@ -145,7 +144,7 @@ class AlphaZeroAgent():
 
     def play(self, env: ConnectFourEnv) -> int:
         R, C = env.ROWS, env.COLS
-        W    = env.WIN_LENGTH
+        W = env.WIN_LENGTH
 
         game_state = Board(num_rows=R, num_cols=C, win_streak=W)
 
