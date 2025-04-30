@@ -107,7 +107,7 @@ def parallel_evaluate_net(connectnet, configs, device):
     mp.set_start_method('spawn', force=True)
 
     n_procs = configs['self_play']['MCTS_num_processes']
-    games_per_proc = configs['self_play']['num_evaluator_games']
+    games_per_proc = configs['self_play']['num_evaluator_games'] // n_procs
 
     result_queue = mp.Queue()
     procs = []
