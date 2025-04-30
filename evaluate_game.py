@@ -31,6 +31,10 @@ def main():
     opponent_agent = RandomAgent()
     if args.oppo == "HeuristicAgent":
         opponent_agent = HeuristicAgent()
+    elif args.oppo == "RandomAgent":
+        opponent_agent = RandomAgent()
+    else:
+        raise ValueError(f"Please pass in a valid opponent agent!")
 
     alpha_agent = AlphaZeroAgent(args.config, args.model_checkpoint)
 
@@ -40,7 +44,6 @@ def main():
         opponent=opponent_agent,
         opponent_name=args.oppo,
         main_player_name="AlphaZeroAgent",
-        first_player=1,
         main_player_id=1,
         win_length=args.win_length
     )
