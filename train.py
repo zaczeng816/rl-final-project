@@ -12,6 +12,7 @@ from tqdm import tqdm
 from prodigyopt import Prodigy
 import yaml
 import wandb
+import random
 
 from MCTS import run_MCTS
 from alpha_net_c4 import AlphaLoss, ConnectNet, board_data
@@ -20,6 +21,11 @@ from evaluate_arena import parallel_evaluate_net
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', \
                     datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 logger = logging.getLogger(__file__)
+
+def seed_everything(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -34,6 +40,8 @@ if __name__ == "__main__":
     os.makedirs("model_ckpts", exist_ok=True)
 
     wandb.init(project="connect4", config=configs)
+
+    seed_everything()
 
     initial_step = 0
     model_iteration = 0
@@ -82,14 +90,21 @@ if __name__ == "__main__":
                     datasets.extend(pickle.load(fo, encoding='bytes'))
             datasets = np.array(datasets, dtype=object)
             train_set = board_data(datasets)
-            train_loader = DataLoader(train_set, batch_size=configs['training']['batch_size'], shuffle=True)
+            train_loader = DataLoader(train_set, batch_size=configs['training']['batch_size'], shuffle=True, prefetch_factor=8, num_workers=8, pin_memory=True, persistent_workers=True)
 
             print(f"Iteration {model_iteration} train set size: {len(train_set)}")
             print(f"Iteration {model_iteration} number of batches: {len(train_loader)}")
 
+            train_iter = iter(train_loader)
+
             model_iteration += 1
 
-        batch = next(iter(train_loader))
+        try:
+            batch = next(train_iter)
+        except StopIteration:
+            train_iter = iter(train_loader)
+            batch = next(train_iter)
+
         state, policy, value = batch
         state, policy, value = state.to(args.device, weight_dtype), policy.to(args.device, weight_dtype), value.to(args.device, weight_dtype)
 
@@ -110,4 +125,5 @@ if __name__ == "__main__":
         optimizer.step()
         optimizer.zero_grad()
 
-        wandb.log(logs, step=global_step)
+        if global_step % 10 == 0:
+            wandb.log(logs, step=global_step)
