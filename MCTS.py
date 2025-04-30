@@ -18,14 +18,12 @@ from connect_board import Board as c_board
 logger.add("logs/mcts.log")
 
 def save_as_pickle(filename, data):
-    completeName = os.path.join("./datasets/",\
-                                filename)
+    completeName = os.path.join("./datasets/", filename)
     with open(completeName, 'wb') as output:
         pickle.dump(data, output)
 
 def load_pickle(filename):
-    completeName = os.path.join("./datasets/",\
-                                filename)
+    completeName = os.path.join("./datasets/", filename)
     with open(completeName, 'rb') as pkl_file:
         data = pickle.load(pkl_file)
     return data
@@ -75,8 +73,8 @@ class UCTNode():
     def select_leaf(self, c_puct=1.0):
         current = self
         while current.is_expanded:
-          best_move = current.best_child(c_puct)
-          current = current.maybe_add_child(best_move)
+            best_move = current.best_child(c_puct)
+            current = current.maybe_add_child(best_move)
         return current
     
     def add_dirichlet_noise(self,action_idxs,child_priors):
@@ -109,8 +107,7 @@ class UCTNode():
         if move not in self.children:
             copy_board = copy.deepcopy(self.game) # make copy of board
             copy_board = self.decode_n_move_pieces(copy_board,move)
-            self.children[move] = UCTNode(
-              copy_board, move, parent=self)
+            self.children[move] = UCTNode(copy_board, move, parent=self)
         return self.children[move]
     
     def backup(self, value_estimate: float):
@@ -122,68 +119,42 @@ class UCTNode():
             elif current.game.player == 0: # same as current.parent.game.player = 1
                 current.total_value += (-1*value_estimate)
             current = current.parent
-        
+
+
 class DummyNode(object):
     def __init__(self):
         self.parent = None
         self.child_total_value = collections.defaultdict(float)
         self.child_number_visits = collections.defaultdict(float)
 
-class BatchedEvaluator:
-    def __init__(self, net, device, batch_size=64):
-        self.net = net
-        self.device = device
-        self.batch_size = batch_size
-        self._buf_states = []
-        self._buf_leaves = []
-
-    def enqueue(self, leaf):
-        s = ed.encode_board(leaf.game)
-        t = torch.from_numpy(s.transpose(2,0,1)).float()
-        self._buf_states.append(t)
-        self._buf_leaves.append(leaf)
-        if len(self._buf_states) >= self.batch_size:
-            self.flush()
-
-    @torch.no_grad()
-    def flush(self):
-        if not self._buf_states: return
-        batch = torch.stack(self._buf_states, dim=0).to(
-            self.device, non_blocking=True
-        )
-        priors_batch, values_batch = self.net(batch)
-        priors_batch = priors_batch.cpu().numpy()
-        values_batch = values_batch.cpu().numpy()
-        for leaf, ps, v in zip(self._buf_leaves, priors_batch, values_batch):
-            if leaf.game.check_winner() or leaf.game.actions()==[]:
-                leaf.backup(v.item())
-            else:
-                leaf.expand(ps.reshape(-1))
-                leaf.backup(v.item())
-        self._buf_states.clear()
-        self._buf_leaves.clear()
-
 
 def UCT_search(game_state, num_reads, net, temp, device, c_puct=1.0):
     root = UCTNode(game_state, move=None, parent=DummyNode())
-    evaluator = BatchedEvaluator(net, device)
     for _ in range(num_reads):
         leaf = root.select_leaf(c_puct)
-        evaluator.enqueue(leaf)
-    evaluator.flush()
+
+        encoded_s = ed.encode_board(leaf.game); encoded_s = encoded_s.transpose(2,0,1)
+        encoded_s = torch.from_numpy(encoded_s).float().cuda()
+
+        child_priors, value_estimate = net(encoded_s)
+        child_priors = child_priors.detach().cpu().numpy().reshape(-1); value_estimate = value_estimate.item()
+
+        if leaf.game.check_winner() == True or leaf.game.actions() == []: # if somebody won or draw
+            leaf.backup(value_estimate)
+            continue
+        
+        leaf.expand(child_priors) # need to make sure valid moves
+        leaf.backup(value_estimate)
     return root
 
-def do_decode_n_move_pieces(board,move):
-    board.drop_piece(move)
-    return board
 
 def get_policy(root, temp=1):
     return ((root.child_number_visits)**(1/temp))/sum(root.child_number_visits**(1/temp))
 
+
 @torch.no_grad()
 def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, device):
-
-    os.makedirs ("datasets/iter_%d" % iteration, exist_ok=True)
+    os.makedirs("datasets/iter_%d" % iteration, exist_ok=True)
     os.makedirs("games", exist_ok=True)
     
     for idxx in tqdm(range(start_idx, num_games + start_idx), position=cpu):
@@ -194,15 +165,18 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
         value = 0
         move_count = 0
         
-        # Create a game replay file for the first 5 games
+        # Create a game replay file for the first 5 games for debugging
         game_replay = []
         should_log = (cpu == 0 and idxx < start_idx + 5)
         
         while checkmate == False and current_board.actions() != []:
+            # high temperature for initial moves for exploration
             if move_count < configs['mcts']['initial_move_count']:
                 t = configs['mcts']['temperature_MCTS']
+            # low temperature for later moves for exploitation
             else:
                 t = 0.1
+
             states.append(copy.deepcopy(current_board.current_board))
             board_state = copy.deepcopy(ed.encode_board(current_board))
             root = UCT_search(current_board, configs['mcts']['num_simulations'], connectnet, t, device)
@@ -211,7 +185,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
             if should_log:
                 game_replay.append(f"Game {idxx} Move {move_count} POLICY:\n{policy}")
 
-            current_board = do_decode_n_move_pieces(current_board, np.random.choice(np.arange(current_board.num_cols), p = policy)) # decode move and move piece(s)
+            current_board.drop_piece(np.random.choice(np.arange(current_board.num_cols), p = policy)) # decode move and move piece(s)
             dataset.append([board_state,policy])
 
             if should_log:
@@ -234,8 +208,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
 
         dataset_p = [(s,p,value) for s,p in dataset]
         del dataset
-        save_as_pickle("iter_%d/" % iteration +\
-                       "dataset_iter%d_cpu%i_%i_%s" % (iteration, cpu, idxx, datetime.datetime.today().strftime("%Y-%m-%d")), dataset_p)
+        save_as_pickle("iter_%d/" % iteration + "dataset_iter%d_cpu%i_%i_%s" % (iteration, cpu, idxx, datetime.datetime.today().strftime("%Y-%m-%d")), dataset_p)
    
 def run_MCTS(configs, connectnet, start_idx=0, iteration=0, device="cuda"):
     connectnet.share_memory()
