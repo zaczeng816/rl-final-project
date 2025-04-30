@@ -180,11 +180,10 @@ def get_policy(root, temp=1):
 
 @torch.no_grad()
 def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, device):
-    if not os.path.isdir("./datasets/iter_%d" % iteration):
-        if not os.path.isdir("datasets"):
-            os.mkdir("datasets")
-        os.mkdir("datasets/iter_%d" % iteration)
-        
+
+    os.makedirs ("datasets/iter_%d" % iteration, exist_ok=True)
+    os.makedirs("games", exist_ok=True)
+    
     for idxx in tqdm(range(start_idx, num_games + start_idx), position=cpu):
         current_board = c_board(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], win_streak=configs['board']['win_streak'])
         checkmate = False
@@ -192,6 +191,11 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
         states = []
         value = 0
         move_count = 0
+        
+        # Create a game replay file for the first 5 games
+        game_replay = []
+        should_log = (cpu == 0 and idxx < start_idx + 5)
+        
         while checkmate == False and current_board.actions() != []:
             if move_count < configs['mcts']['initial_move_count']:
                 t = configs['mcts']['temperature_MCTS']
@@ -202,17 +206,16 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
             root = UCT_search(current_board, configs['mcts']['num_simulations'], connectnet, t, device)
             policy = get_policy(root, t)
 
-            # print policy for first 5 games
-            if cpu == 0 and idxx < start_idx + 5:
-                logger.info("[CPU: %d]: Game %d Move %d POLICY:\n %s" % (cpu, idxx, move_count, policy))
+            if should_log:
+                game_replay.append(f"Game {idxx} Move {move_count} POLICY:\n{policy}")
 
             current_board = do_decode_n_move_pieces(current_board, np.random.choice(np.arange(current_board.num_cols), p = policy)) # decode move and move piece(s)
             dataset.append([board_state,policy])
 
-            # print current board for first 5 games
-            if cpu == 0 and idxx < start_idx + 5:
-                logger.info("[Iteration: %d CPU: %d]: Game %d Move %d CURRENT BOARD: %s\n" % (iteration, cpu, idxx, move_count, current_board.current_board))
-
+            if should_log:
+                game_replay.append(f"[Iteration: {iteration} CPU: {cpu}]: Game {idxx} Move {move_count} CURRENT BOARD:")
+                game_replay.append(str(current_board.current_board))
+                
             if current_board.check_winner() == True: # if somebody won
                 if current_board.player == 0: # black wins
                     value = -1
@@ -220,6 +223,12 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
                     value = 1
                 checkmate = True
             move_count += 1
+
+        # Write game log to file
+        if should_log:
+            game_replay_path = f"./games/game_iter{iteration}_{idxx}_{configs['board']['num_cols']}_{configs['board']['num_rows']}_{configs['board']['win_streak']}.txt"
+            with open(game_replay_path, 'w') as f:
+                f.write('\n'.join(game_replay))
 
         dataset_p = [(s,p,value) for s,p in dataset]
         del dataset
