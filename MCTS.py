@@ -179,7 +179,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
 
             states.append(copy.deepcopy(current_board.current_board))
             board_state = copy.deepcopy(encode_board(current_board))
-            root = UCT_search(current_board, configs['mcts']['num_simulations'], connectnet, t, device)
+            root = UCT_search(current_board, configs['mcts']['num_simulations'], connectnet, t, device, c_puct=configs['self_play']['c_puct'])
             policy = get_policy(root, t)
 
             if should_log:
