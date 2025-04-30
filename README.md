@@ -33,10 +33,18 @@ The code structure and implementation is inspired by the following repository:
 
 ## Interactive Game Play On Web
 
+#### Requirements
+`npm` and `docker` are required to run the frontend and backend servers.
+
+#### File Structure
+`app.py` is the main file for the backend server using `fastapi`.
+`frontend/` is the folder for the frontend server using `next.js`.
+
+#### Running the servers
 Use `start_backend.sh` to start the backend server.  
-* this will start a fastapi server and a redis on docker which stores the game states
+- this will start a fastapi server and a redis on docker which stores the game states
 
 Use `start_frontend.sh` to start the frontend server.
-* this will install frontend dependencies and start a react app on `http://localhost:3000`
+- this will install frontend dependencies and start a react app on `http://localhost:3000`
 
 Open `http://localhost:3000` in your browser to play the game.
