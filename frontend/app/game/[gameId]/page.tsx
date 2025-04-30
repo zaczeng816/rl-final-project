@@ -82,6 +82,16 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 400 && errorData.detail === "Not your turn") {
+          // Show a user-friendly message for "not your turn" error
+          setError("Please wait for your turn");
+          // Refresh the page after 2 seconds
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+          return;
+        }
         throw new Error('Failed to make move');
       }
 
@@ -110,7 +120,19 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
         setAiThinking(false);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (err instanceof Error && err.message === "Please wait for your turn") {
+        setError(err.message);
+        // Refresh the page after 2 seconds
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+        // Refresh the page after 3 seconds for other errors
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+      }
       setAiThinking(false);
     }
   };
