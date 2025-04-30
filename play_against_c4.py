@@ -83,8 +83,8 @@ def play_game(net, configs, device):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--net", type=str, default="model_ckpts/c4_current_net_trained_iter8.pth.tar", help="Path to the trained network")
-    parser.add_argument("--config", type=str, default="configs/h6_w7_c4_base.yaml", help="Path to the config file")
+    parser.add_argument("--net", type=str, default="model_ckpts/cc4_current_net__iter7.pth.tar", help="Path to the trained network")
+    parser.add_argument("--config", type=str, default="configs/h6_w7_c4_small_600.yaml", help="Path to the config file")
     return parser.parse_args()
 
 if __name__ == "__main__":
