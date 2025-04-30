@@ -232,7 +232,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
                   <Button
                     onClick={() => handleMakeMove(index)}
                     disabled={gameState.game_over || !isPlayerTurn || aiThinking}
-                    className="transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90 disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:bg-primary"
+                    className="transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90 disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:bg-primary cursor-pointer"
                   >
                     Drop
                   </Button>

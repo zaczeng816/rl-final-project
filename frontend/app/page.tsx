@@ -77,13 +77,13 @@ export default function Home() {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger 
             value="new-game"
-            className="hover:scale-105 data-[state=active]:scale-105 transition-transform duration-200"
+            className="hover:scale-105 data-[state=active]:scale-105 transition-transform duration-200 cursor-pointer"
           >
             New Game
           </TabsTrigger>
           <TabsTrigger 
             value="history"
-            className="hover:scale-105 data-[state=active]:scale-105 transition-transform duration-200"
+            className="hover:scale-105 data-[state=active]:scale-105 transition-transform duration-200 cursor-pointer"
           >
             Game History
           </TabsTrigger>
@@ -94,7 +94,7 @@ export default function Home() {
             <Button 
               onClick={() => setShowSelection(true)}
               disabled={loading}
-              className="text-lg px-8 py-6 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90"
+              className="text-lg px-8 py-6 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90 cursor-pointer"
             >
               Start New Game
             </Button>
@@ -105,14 +105,14 @@ export default function Home() {
                 <Button 
                   onClick={() => handleCreateGame('black')}
                   disabled={loading}
-                  className="text-lg px-8 py-6 bg-black text-white hover:bg-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                  className="text-lg px-8 py-6 bg-black text-white hover:bg-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-lg cursor-pointer"
                 >
                   Play as O (First)
                 </Button>
                 <Button 
                   onClick={() => handleCreateGame('white')}
                   disabled={loading}
-                  className="text-lg px-8 py-6 bg-white text-black border-2 border-black hover:bg-gray-100 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                  className="text-lg px-8 py-6 bg-white text-black border-2 border-black hover:bg-gray-100 transition-all duration-300 hover:scale-105 hover:shadow-lg cursor-pointer"
                 >
                   Play as X (Second)
                 </Button>
