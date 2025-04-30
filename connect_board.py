@@ -20,23 +20,18 @@ class Board():
     def num_cols(self):
         return self.num_cols
     
-    def drop_piece(self, column):
-        if self.current_board[0, column] != " ":
-            return "Invalid move"
-        else:
-            row = 0; pos = " "
-            while (pos == " "):
-                if row == self.num_rows:
-                    row += 1
-                    break
-                pos = self.current_board[row, column]
-                row += 1
-            if self.player == 0:
-                self.current_board[row-2, column] = "O"
-                self.player = 1
-            elif self.player == 1:
-                self.current_board[row-2, column] = "X"
-                self.player = 0
+    def drop_piece(self, col: int) -> bool:
+        # illegal move
+        if not (0 <= col < self.num_cols) or self.current_board[0, col] != " ":
+            raise ValueError("Invalid move")
+
+        # drop piece
+        for r in range(self.num_rows - 1, -1, -1):
+            if self.current_board[r, col] == " ":
+                self.current_board[r, col] = "O" if self.player == 0 else "X"
+                self.player ^= 1
+                return True
+        raise ValueError("Invalid move")
     
     def check_winner(self):
         target = "O" if self.player == 1 else "X"
