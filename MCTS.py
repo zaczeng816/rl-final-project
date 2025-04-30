@@ -12,8 +12,7 @@ import datetime
 from tqdm import tqdm
 from loguru import logger
 
-import encoder_decoder_c4 as ed
-from connect_board import Board as c_board
+from connect_board import Board, encode_board
 
 logger.add("logs/mcts.log")
 
@@ -133,7 +132,8 @@ def UCT_search(game_state, num_reads, net, temp, device, c_puct=1.0):
     for _ in range(num_reads):
         leaf = root.select_leaf(c_puct)
 
-        encoded_s = ed.encode_board(leaf.game); encoded_s = encoded_s.transpose(2,0,1)
+        encoded_s = encode_board(leaf.game)
+        encoded_s = encoded_s.transpose(2,0,1)
         encoded_s = torch.from_numpy(encoded_s).float().cuda()
 
         child_priors, value_estimate = net(encoded_s)
@@ -158,7 +158,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
     os.makedirs("games", exist_ok=True)
     
     for idxx in tqdm(range(start_idx, num_games + start_idx), position=cpu):
-        current_board = c_board(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], win_streak=configs['board']['win_streak'])
+        current_board = Board(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], win_streak=configs['board']['win_streak'])
         checkmate = False
         dataset = [] # to get state, policy, value for neural network training
         states = []
@@ -178,7 +178,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, configs, iteration, de
                 t = 0.1
 
             states.append(copy.deepcopy(current_board.current_board))
-            board_state = copy.deepcopy(ed.encode_board(current_board))
+            board_state = copy.deepcopy(encode_board(current_board))
             root = UCT_search(current_board, configs['mcts']['num_simulations'], connectnet, t, device)
             policy = get_policy(root, t)
 

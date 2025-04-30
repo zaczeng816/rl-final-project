@@ -15,8 +15,9 @@ import wandb
 import random
 
 from MCTS import run_MCTS
-from alpha_net_c4 import AlphaLoss, ConnectNet, board_data
+from model import AlphaLoss, ConnectNet
 from evaluate_arena import parallel_evaluate_net
+from dataset import BoardDataset
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', \
                     datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
@@ -89,7 +90,7 @@ if __name__ == "__main__":
                 with open(filename, 'rb') as fo:
                     datasets.extend(pickle.load(fo, encoding='bytes'))
             datasets = np.array(datasets, dtype=object)
-            train_set = board_data(datasets)
+            train_set = BoardDataset(datasets)
             train_loader = DataLoader(train_set, batch_size=configs['training']['batch_size'], shuffle=True, prefetch_factor=8, num_workers=8, pin_memory=True, persistent_workers=True)
 
             print(f"Iteration {model_iteration} train set size: {len(train_set)}")

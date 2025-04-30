@@ -1,17 +1,14 @@
 #!/usr/bin/env python
-
 import argparse
-import os.path
 import torch
 import numpy as np
-from alpha_net_c4 import ConnectNet
-from connect_board import Board as cboard
-import encoder_decoder_c4 as ed
 import copy
-from MCTS import UCT_search, do_decode_n_move_pieces, get_policy
-import pickle
-import datetime
 import yaml
+
+from MCTS import UCT_search, get_policy
+from model import ConnectNet
+from connect_board import Board as cboard, encode_board
+
 
 def play_game(net, configs, device):
     # Asks human what he/she wanna play as
@@ -30,7 +27,7 @@ def play_game(net, configs, device):
     value = 0; t = 0.1; moves_count = 0
     while checkmate == False and current_board.actions() != []:
         moves_count += 1
-        dataset.append(copy.deepcopy(ed.encode_board(current_board)))
+        dataset.append(copy.deepcopy(encode_board(current_board)))
         print(current_board.current_board); print(" ")
         if current_board.player == 0:
             if white != None:
@@ -54,16 +51,15 @@ def play_game(net, configs, device):
                     if int(col) in np.arange(current_board.num_cols) + 1:
                         policy = np.zeros([current_board.num_cols], dtype=np.float32); policy[int(col)-1] += 1
                         break
-        current_board = do_decode_n_move_pieces(current_board,\
-                                                np.random.choice(np.arange(current_board.num_cols), \
-                                                                 p = policy)) # decode move and move piece(s)
+        current_board.drop_piece(np.random.choice(np.arange(current_board.num_cols), p = policy))
         if current_board.check_winner() == True: # someone wins
             if current_board.player == 0: # black wins
                 value = -1
             elif current_board.player == 1: # white wins
                 value = 1
             checkmate = True
-    dataset.append(ed.encode_board(current_board))
+            
+    dataset.append(encode_board(current_board))
     print(current_board.current_board); print(" ")
     if value == -1:
         if play_as == "O":
@@ -83,8 +79,8 @@ def play_game(net, configs, device):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--net", type=str, default="model_ckpts/cc4_current_net__iter7.pth.tar", help="Path to the trained network")
-    parser.add_argument("--config", type=str, default="configs/h6_w7_c4_small_600.yaml", help="Path to the config file")
+    parser.add_argument("--net", type=str, default="model_ckpts/c4_current_net_trained_iter8.pth.tar", help="Path to the trained network")
+    parser.add_argument("--config", type=str, default="configs/h6_w7_c4_base.yaml", help="Path to the config file")
     return parser.parse_args()
 
 if __name__ == "__main__":

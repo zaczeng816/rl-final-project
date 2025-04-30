@@ -2,10 +2,9 @@
 import torch
 import yaml
 import numpy as np
-import encoder_decoder_c4 as ed
 
-from alpha_net_c4 import ConnectNet
-from connect_board import Board as cboard
+from model import ConnectNet
+from connect_board import Board, encode_board
 from MCTS import UCT_search, get_policy
 from tqdm import trange
 from torch import multiprocessing as mp
@@ -27,7 +26,7 @@ class AlphaZeroAgent:
         self.temperature = temperature
 
     def play(self, board):
-        board_state = ed.encode_board(board)
+        board_state = encode_board(board)
 
         root = UCT_search(board, self.configs['mcts']['num_simulations'], self.net, self.temperature, self.device)
         policy = get_policy(root, self.temperature)
@@ -44,7 +43,7 @@ def play_game(net, configs, device, ai_first: bool):
         white = net
         black = RandomAgent(configs['board']['num_cols'], configs['board']['num_rows'])
         
-    current_board = cboard(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], win_streak=configs['board']['win_streak'])
+    current_board = Board(num_cols=configs['board']['num_cols'], num_rows=configs['board']['num_rows'], win_streak=configs['board']['win_streak'])
     checkmate = False
     value = 0; t = 0.1; moves_count = 0
     while checkmate == False and current_board.actions() != []:
