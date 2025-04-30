@@ -69,6 +69,11 @@ class GameResponse(BaseModel):
     winner: Optional[str] = None
     message: str
 
+class GameConfig(BaseModel):
+    num_cols: int
+    num_rows: int
+    win_streak: int
+
 def create_new_game() -> GameState:
     game_id = str(uuid.uuid4())
     board = cboard(
@@ -234,4 +239,12 @@ async def make_ai_move(game_id: str):
         game_over=game_state.game_over,
         winner=game_state.winner,
         message=f"AI made move in column {ai_move + 1}"
+    )
+
+@app.get("/config", response_model=GameConfig)
+async def get_config():
+    return GameConfig(
+        num_cols=configs['board']['num_cols'],
+        num_rows=configs['board']['num_rows'],
+        win_streak=configs['board']['win_streak']
     )

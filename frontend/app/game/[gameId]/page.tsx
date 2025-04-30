@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { use } from 'react';
 
+interface GameConfig {
+  num_cols: number;
+  num_rows: number;
+  win_streak: number;
+}
+
 interface GameState {
   game_id: string;
   board: string[][];
@@ -17,9 +23,27 @@ interface GameState {
 export default function GamePage({ params }: { params: Promise<{ gameId: string }> }) {
   const router = useRouter();
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { gameId } = use(params);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('http://localhost:8001/config');
+        if (!response.ok) {
+          throw new Error('Failed to fetch game config');
+        }
+        const config = await response.json();
+        setGameConfig(config);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      }
+    };
+
+    fetchConfig();
+  }, []);
 
   useEffect(() => {
     const fetchGameState = async () => {
@@ -65,7 +89,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
     }
   };
 
-  if (loading) {
+  if (loading || !gameConfig) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
@@ -97,7 +121,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
           ) : (
             <p className="text-xl mb-4">It's a draw!</p>
           )}
-          <div className="grid grid-cols-7 gap-2 mb-8">
+          <div className={`grid grid-cols-${gameConfig.num_cols} gap-2 mb-8`}>
             {gameState.board.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                 <div
@@ -129,7 +153,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
       ) : (
         <>
           <h2 className="text-2xl font-bold">Game ID: {gameState.game_id}</h2>
-          <div className="grid grid-cols-7 gap-2">
+          <div className={`grid grid-cols-${gameConfig.num_cols} gap-2`}>
             {gameState.board.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                 <div
@@ -142,7 +166,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
             )}
           </div>
           <div className="flex gap-2">
-            {Array.from({ length: 7 }).map((_, index) => (
+            {Array.from({ length: gameConfig.num_cols }).map((_, index) => (
               <Button
                 key={index}
                 onClick={() => handleMakeMove(index)}
