@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./frontend/.next:/usr/share/nginx/html
+    depends_on:
+      - backend
+      - redis
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_HOST=redis
+      - CONNECT4_CONFIG=configs/h6_w7_c4_small_600.yaml
+      - CONNECT4_CHECKPOINT=model_ckpts/cc4_current_net__iter7.pth.tar
+    volumes:
+      - ./configs:/app/configs
+      - ./model_ckpts:/app/model_ckpts
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost/api
+    restart: unless-stopped
+
+volumes:
+  redis_data: 
