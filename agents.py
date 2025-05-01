@@ -1,3 +1,14 @@
+"""
+
+Defines various Connect Four agents:
+- RandomAgent: selects uniform random valid moves.
+- HeuristicAgent: rule-based heuristic for win/block/threats.
+- AlphaZeroAgent: MCTS-driven agent using a neural network.
+- ChildPlayer, ChildSmarterPlayer: simple heuristic players.
+- BabyPlayer, BabySmarterPlayer: random or basic heuristic players.
+
+"""
+
 import numpy as np
 import yaml
 import torch
@@ -13,6 +24,7 @@ class RandomAgent():
     def play(self, env):
         action_space = env.action_space
         return action_space.sample()
+
 
 class HeuristicAgent:
     def __init__(self):
@@ -56,7 +68,7 @@ class HeuristicAgent:
                 if self.check_in_a_row(new_board, self.main_id, r, c) and move not in moves_to_avoid:
                     return move
 
-        for move in range(7):
+        for move in range(self.cols):
             if board[0, move] == 0:
                 new_board, row, col = self.apply_move(board, move, self.opp_id)
                 if self.check_in_a_row(new_board, self.opp_id, row, col) and move not in moves_to_avoid:
@@ -142,7 +154,7 @@ class AlphaZeroAgent():
         self.temperature = 0.1
 
 
-    def play(self, env: ConnectFourEnv) -> int:
+    def play(self, env: ConnectFourEnv):
         R, C = env.ROWS, env.COLS
         W = env.WIN_LENGTH
 
@@ -154,7 +166,6 @@ class AlphaZeroAgent():
                 if   v == 1: game_state.current_board[r, c] = 'O'
                 elif v == 2: game_state.current_board[r, c] = 'X'
 
-        # map env.current_player  → Board.player
         game_state.player = 0 if env.current_player == 1 else 1
 
         root   = UCT_search(
@@ -166,7 +177,168 @@ class AlphaZeroAgent():
         )
         policy = get_policy(root, self.temperature)
 
-        # 4) sample/argmax your policy vector
         return int(np.random.choice(np.arange(C), p=policy))
+
+
+class Player:
+    def __init__(self, name):
+        self.name = name
+
+    def play(self, env):
+        raise NotImplementedError("The 'play' method must be implemented in the child class")
+    
+    def getName(self):
+        return self.name
+
+    def isDeterministic(self):
+        raise NotImplementedError("The 'isDeterministic' method must be implemented in the child class")
+
+
+class ChildPlayer(Player):
+    def __init__(self, _=""):
+        pass
+
+    def play(self, env: ConnectFourEnv):
+
+        board      = env.board
+        rows, cols = env.ROWS, env.COLS
+        win_length = env.WIN_LENGTH
+
+        return self.play_single(board, rows, cols, win_length)
+
+    def play_single(self, board, rows, cols, win_length):
+        for move in range(cols):
+            if board[0, move] == 0:
+                new_board, r, c = self.apply_move(board, move, 1, rows)
+                if self.check_win(new_board, 1, r, c, rows, cols, win_length):
+                    return move
+
+        valid_moves = [c for c in range(cols) if board[0, c] == 0]
+        return int(np.random.choice(valid_moves))
+
+    def apply_move(self, board, move, player, rows):
+        new_board = board.copy()
+        for i in range(rows - 1, -1, -1):
+            if new_board[i, move] == 0:
+                new_board[i, move] = player
+                return new_board, i, move
+
+    def check_win(self, board, player, row, col, rows, cols, win_length):
+        directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+        for dr, dc in directions:
+            count = 0
+            for offset in range(-(win_length - 1), win_length):
+                r = row + dr * offset
+                c = col + dc * offset
+                if 0 <= r < rows and 0 <= c < cols and board[r, c] == player:
+                    count += 1
+                    if count >= win_length:
+                        return True
+                else:
+                    count = 0
+        return False
+
+    def getName(self):
+        return "ChildPlayer"
+
+    def isDeterministic(self):
+        return False
+    
+
+class ChildSmarterPlayer(Player):
+
+    def __init__(self, _=""):
+        pass
+
+    def play_single(self, board, rows, cols, win_length):
+        for move in range(cols):
+            if board[0, move] == 0:
+                new_board, r, c = self.apply_move(board, move, 1, rows)
+                if self.check_win(new_board, 1, r, c, rows, cols, win_length):
+                    return move
+                
+        for move in range(cols):
+            if board[0, move] == 0:
+                new_board, r, c = self.apply_move(board, move, 2, rows)
+                if self.check_win(new_board, 2, r, c, rows, cols, win_length):
+                    return move
+
+        valid_moves = [c for c in range(cols) if board[0, c] == 0]
+        return int(np.random.choice(valid_moves))
+
+    def play(self, env: ConnectFourEnv):
+
+        board      = env.board
+        rows, cols = env.ROWS, env.COLS
+        win_length = env.WIN_LENGTH
+
+        return self.play_single(board, rows, cols, win_length)
+
+    def getName(self):
+        return "ChildSmarterPlayer"
+
+    def isDeterministic(self):
+        return False
+
+    def apply_move(self, board, move, player, rows):
+        new_board = board.copy()
+        for i in range(rows - 1, -1, -1):
+            if new_board[i, move] == 0:
+                new_board[i, move] = player
+                return new_board, i, move
+
+    def check_win(self, board, player, row, col, rows, cols, win_length):
+        directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+        for dr, dc in directions:
+            count = 0
+            for offset in range(-(win_length - 1), win_length):
+                r = row + dr * offset
+                c = col + dc * offset
+                if 0 <= r < rows and 0 <= c < cols and board[r, c] == player:
+                    count += 1
+                    if count >= win_length:
+                        return True
+                else:
+                    count = 0
+        return False
+
+
+class BabyPlayer(Player):
+
+    def __init__(self, _=""):
+        pass
+
+    def random_move(self, cols):
+        return np.random.randint(0, cols)
+
+    def play(self, env: ConnectFourEnv):
+        cols = env.COLS
+        return self.random_move(cols)
+
+    def getName(self):
+        return "BabyPlayer"
+
+
+    def isDeterministic(self):
+        return False
+
+
+class BabySmarterPlayer(Player):
+
+    def __init__(self, _=""):
+        pass
+
+    def play_single(self,cols, board):
+        valid_moves = [c for c in range(cols) if board[0, c] == 0]
+        return np.random.choice(valid_moves)
+
+    def play(self, env: ConnectFourEnv):
+        return self.play_single(env.COLS, env.board)
+
+    def getName(self):
+        return "BabySmarterPlayer"
+    
+    def isDeterministic(self):
+        return False
 
 
