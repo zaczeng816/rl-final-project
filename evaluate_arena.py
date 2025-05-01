@@ -4,10 +4,11 @@ import yaml
 import numpy as np
 
 from model import ConnectNet
-from connect_board import Board, encode_board
+from connect_board import Board
 from MCTS import UCT_search, get_policy
 from tqdm import trange
 from torch import multiprocessing as mp
+
 
 class RandomAgent:
     def __init__(self, num_cols, num_rows):
@@ -18,23 +19,8 @@ class RandomAgent:
         available_actions = board.actions()
         return available_actions[np.random.randint(0, len(available_actions))]
 
-class AlphaZeroAgent:
-    def __init__(self, net, configs, device, temperature=0.1):
-        self.net = net
-        self.configs = configs
-        self.device = device
-        self.temperature = temperature
-
-    def play(self, board):
-        board_state = encode_board(board)
-
-        root = UCT_search(board, self.configs['mcts']['num_simulations'], self.net, self.temperature, self.device)
-        policy = get_policy(root, self.temperature)
-
-        return np.random.choice(np.arange(board.num_cols), p = policy)
 
 def play_game(net, configs, device, ai_first: bool):
-    # Randomly assign AI and RandomAgent roles
     white = None; black = None
     if ai_first:
         black = net
