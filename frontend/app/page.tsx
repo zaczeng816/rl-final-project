@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from 'date-fns';
+import { createGame, getGameHistory } from './actions';
 
 interface GameHistory {
   game_id: string;
@@ -22,41 +23,25 @@ export default function Home() {
   const [historyLoading, setHistoryLoading] = useState(true);
 
   useEffect(() => {
-    const fetchHistory = async () => {
+    const loadHistory = async () => {
       try {
-        const response = await fetch('http://localhost:8001/games/history');
-        if (!response.ok) {
-          console.error('Failed to fetch game history:', response.status);
-          setGameHistory([]);
-          return;
-        }
-        const data = await response.json();
-        setGameHistory(data || []);
+        const data = await getGameHistory();
+        setGameHistory(data);
       } catch (error) {
-        console.error('Error fetching game history:', error);
+        console.error('Error loading game history:', error);
         setGameHistory([]);
       } finally {
         setHistoryLoading(false);
       }
     };
 
-    fetchHistory();
+    loadHistory();
   }, []);
 
   const handleCreateGame = async (playerColor: 'black' | 'white') => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8001/games', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ player_color: playerColor }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to create game');
-      }
-      const data = await response.json();
+      const data = await createGame(playerColor);
       router.push(`/game/${data.game_id}`);
     } catch (error) {
       console.error('Error creating game:', error);
