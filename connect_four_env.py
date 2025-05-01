@@ -189,7 +189,6 @@ class ConnectFourEnv(gym.Env):
             # print(f"  🟣 {self.opponent_name} (Player {self.opponent_id})")
             return
 
-        # ======= to be replaced with other UI:======= #
         if self.window is None:
             pygame.init()
             size = 32
