@@ -148,14 +148,14 @@ export default function GameClient() {
                 }
               }}
               variant="default"
-              className="transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90"
+              className="transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90 cursor-pointer"
             >
               Start New Game
             </Button>
             <Button 
               onClick={() => router.push('/')} 
               variant="outline"
-              className="transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-accent"
+              className="transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-accent cursor-pointer"
             >
               Return to Home
             </Button>
