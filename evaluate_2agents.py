@@ -32,7 +32,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate 2 agents on the new custom environment")
 
     # Main player
-    parser.add_argument("--agent", "-a", choices=['RandomAgent', 'HeuristicAgent', 'AlphaZeroAgent'], required=True)
+    parser.add_argument("--agent", "-a", choices=['RandomAgent', 'HeuristicAgent', 'AlphaZeroAgent'], default='AlphaZeroAgent', required=True)
     parser.add_argument("--config", "-c", required=False)
     parser.add_argument("--model_checkpoint", "-mc",  required=False)
 

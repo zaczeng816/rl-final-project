@@ -20,6 +20,20 @@ pip install -r requirements.txt
 python train.py --config configs/h6_w7_c4_small_200.yaml --device cuda
 ```
 
+## Evaluation
+
+### Baseline agents:
+- RandomAgent: selects uniform random valid moves.
+- HeuristicAgent: rule-based heuristic for win/block/threats.
+```bash
+python evaluate_2agents.py --agent 'RandomAgent' --opponent 'HeuristicAgent'
+```
+
+### AlphaZeroAgent vs. selected agent:
+```bash
+python evaluate_2agents.py --config configs/h6_w7_c4_small_200.yaml --model_checkpoint final_ckpt/h6_w7_c4_current_net_small_200_step80000.pth --opponent <pick an agent>
+```
+
 ## Interactive Game Play On Web
 
 #### Requirements
