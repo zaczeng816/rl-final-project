@@ -183,15 +183,11 @@ class ConnectFourEnv(gym.Env):
                   2: '🟣'
                 }
                 print("| " + " ".join(symbols[c] for c in row) + " |")
-            # Legend
-            # print("\nLegend:")
-            # print(f"  🟡 {self.main_player_name} (Player {self.main_player_id})")
-            # print(f"  🟣 {self.opponent_name} (Player {self.opponent_id})")
             return
 
         if self.window is None:
             pygame.init()
-            size = 32
+            size = 36
             pad = 4
             width = self.COLS * (2*size + pad) + pad
             height = self.ROWS * (2*size + pad) + pad + 80
@@ -239,8 +235,6 @@ class ConnectFourEnv(gym.Env):
         self.window.blit(canvas, (0,0))
         pygame.display.flip()
         pygame.event.pump()
-
-        # ======================================================== #
 
     def clone(self):
         new = ConnectFourEnv(
