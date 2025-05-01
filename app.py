@@ -111,7 +111,8 @@ def create_new_game(player_color: str) -> GameState:
         moves_count=0,
         game_over=False,
         player_color=player_color,
-        created_at=int(time.time() * 1000)
+        created_at=int(time.time() * 1000),
+        winning_positions=None
     )
     
     # Store in Redis
@@ -212,6 +213,18 @@ async def create_game(request: CreateGameRequest):
 @app.get("/games/{game_id}", response_model=GameResponse)
 async def get_game(game_id: str):
     game_state = get_game_state(game_id)
+    # If the game is over, we need to get the winning positions
+    if game_state.game_over and game_state.winner:
+        board = cboard(
+            num_cols=configs['board']['num_cols'],
+            num_rows=configs['board']['num_rows'],
+            win_streak=configs['board']['win_streak']
+        )
+        board.current_board = np.array(game_state.board)
+        # Set the player to the opposite of the winner to get correct winning positions
+        board.player = 0 if game_state.winner == "white" else 1
+        game_state.winning_positions = board.get_winning_positions()
+    
     return GameResponse(
         game_id=game_state.game_id,
         board=game_state.board,
@@ -219,7 +232,8 @@ async def get_game(game_id: str):
         game_over=game_state.game_over,
         winner=game_state.winner,
         message="Game state retrieved",
-        player_color=game_state.player_color
+        player_color=game_state.player_color,
+        winning_positions=game_state.winning_positions
     )
 
 @app.post("/games/{game_id}/move", response_model=GameResponse)
