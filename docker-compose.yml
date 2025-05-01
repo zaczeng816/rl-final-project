@@ -1,20 +1,6 @@
 version: '3.8'
 
 services:
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./frontend/.next:/usr/share/nginx/html
-    depends_on:
-      - backend
-      - redis
-    restart: unless-stopped
-
   backend:
     build:
       context: .
@@ -41,7 +27,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost/api
+      - NEXT_PUBLIC_API_URL=http://backend:8001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+      - redis
     restart: unless-stopped
 
 volumes:

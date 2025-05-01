@@ -19,6 +19,7 @@ import string
 # Get configuration from environment variables with defaults
 CONFIG_PATH = os.getenv('CONNECT4_CONFIG', 'configs/h6_w7_c4_small_600.yaml')
 CHECKPOINT_PATH = os.getenv('CONNECT4_CHECKPOINT', 'model_ckpts/cc4_current_net__iter7.pth.tar')
+REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 
 # Validate paths
 if not os.path.exists(CONFIG_PATH):
@@ -38,19 +39,20 @@ app.add_middleware(
 )
 
 # Redis connection
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
+redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0)
 
 # Load model and config
 configs = yaml.safe_load(open(CONFIG_PATH, 'r'))
 device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {device}")
 net = ConnectNet(
     num_cols=configs['board']['num_cols'], 
     num_rows=configs['board']['num_rows'], 
     num_blocks=configs['model']['num_blocks']
 ).to(device)
 net.eval()
-checkpoint = torch.load(CHECKPOINT_PATH)
-net.load_state_dict(checkpoint)
+checkpoint = torch.load(CHECKPOINT_PATH, map_location=device)
+net.load_state_dict(checkpoint['state_dict'] if 'state_dict' in checkpoint else checkpoint)
 
 class GameState(BaseModel):
     game_id: str
