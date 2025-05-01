@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { use } from 'react';
+import { getGameState, makeMove, makeAIMove, createGame } from '@/app/actions';
 
 interface GameConfig {
   num_cols: number;
@@ -21,81 +21,39 @@ interface GameState {
   player_color: string;
 }
 
-export default function GamePage({ params }: { params: Promise<{ gameId: string }> }) {
+export default function GamePage() {
   const router = useRouter();
+  const params = useParams();
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [aiThinking, setAiThinking] = useState(false);
-  const { gameId } = use(params);
+  const gameId = params.gameId as string;
 
   useEffect(() => {
-    const fetchConfig = async () => {
+    const loadGameState = async () => {
       try {
-        const response = await fetch('http://localhost:8001/config');
-        if (!response.ok) {
-          throw new Error('Failed to fetch game config');
-        }
-        const config = await response.json();
-        setGameConfig(config);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      }
-    };
-
-    fetchConfig();
-  }, []);
-
-  useEffect(() => {
-    const fetchGameState = async () => {
-      try {
-        const response = await fetch(`http://localhost:8001/games/${gameId}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            router.push('/');
-            return;
-          }
-          throw new Error('Failed to fetch game state');
-        }
-        const data = await response.json();
+        const data = await getGameState(gameId);
         setGameState(data);
       } catch (err) {
+        if (err instanceof Error && err.message === 'Game not found') {
+          router.push('/');
+          return;
+        }
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGameState();
+    loadGameState();
   }, [gameId, router]);
 
   const handleMakeMove = async (column: number) => {
     try {
       // Make player's move
-      const response = await fetch(`http://localhost:8001/games/${gameId}/move`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ column }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 400 && errorData.detail === "Not your turn") {
-          // Show a user-friendly message for "not your turn" error
-          setError("Please wait for your turn");
-          // Refresh the page after 2 seconds
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
-          return;
-        }
-        throw new Error('Failed to make move');
-      }
-
-      const data = await response.json();
+      const data = await makeMove(gameId, column);
       setGameState(data);
 
       // If it's still the AI's turn after player's move, wait and make AI move
@@ -104,18 +62,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
         // Wait for 1 second before making AI move
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        const aiResponse = await fetch(`http://localhost:8001/games/${gameId}/ai-move`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!aiResponse.ok) {
-          throw new Error('Failed to make AI move');
-        }
-
-        const aiData = await aiResponse.json();
+        const aiData = await makeAIMove(gameId);
         setGameState(aiData);
         setAiThinking(false);
       }
@@ -137,7 +84,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
     }
   };
 
-  if (loading || !gameConfig) {
+  if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
@@ -178,7 +125,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
           ) : (
             <p className="text-xl mb-4">It's a draw!</p>
           )}
-          <div className="grid gap-2 mb-8" style={{ gridTemplateColumns: `repeat(${gameConfig.num_cols}, minmax(0, 1fr))` }}>
+          <div className="grid gap-2 mb-8" style={{ gridTemplateColumns: `repeat(${gameConfig?.num_cols || 7}, minmax(0, 1fr))` }}>
             {gameState.board.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                 <div
@@ -194,17 +141,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
             <Button 
               onClick={async () => {
                 try {
-                  const response = await fetch('http://localhost:8001/games', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ player_color: gameState.player_color }),
-                  });
-                  if (!response.ok) {
-                    throw new Error('Failed to create game');
-                  }
-                  const data = await response.json();
+                  const data = await createGame(gameState.player_color as 'black' | 'white');
                   router.push(`/game/${data.game_id}`);
                 } catch (error) {
                   console.error('Error creating game:', error);
@@ -236,7 +173,7 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
             </p>
           </div>
           <div className="flex flex-col items-center gap-4">
-            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${gameConfig.num_cols}, minmax(0, 1fr))` }}>
+            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${gameConfig?.num_cols || 7}, minmax(0, 1fr))` }}>
               {gameState.board.map((row, rowIndex) =>
                 row.map((cell, colIndex) => (
                   <div
@@ -248,8 +185,8 @@ export default function GamePage({ params }: { params: Promise<{ gameId: string 
                 ))
               )}
             </div>
-            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${gameConfig.num_cols}, minmax(0, 1fr))` }}>
-              {Array.from({ length: gameConfig.num_cols }).map((_, index) => (
+            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${gameConfig?.num_cols || 7}, minmax(0, 1fr))` }}>
+              {Array.from({ length: gameConfig?.num_cols || 7 }).map((_, index) => (
                 <div key={index} className="w-12 flex justify-center">
                   <Button
                     onClick={() => handleMakeMove(index)}
