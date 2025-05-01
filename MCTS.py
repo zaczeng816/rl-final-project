@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 
+# Limit the number of threads to avoid resource contention
 os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['MKL_NUM_THREADS'] = '1'
 
@@ -19,20 +20,28 @@ from loguru import logger
 
 from connect_board import Board, encode_board
 
+# Set up logging
 logger.add("logs/mcts.log")
 
 def save_as_pickle(filename, data):
+    """Save data to a pickle file in the datasets directory"""
     completeName = os.path.join("./datasets/", filename)
     with open(completeName, 'wb') as output:
         pickle.dump(data, output)
 
 def load_pickle(filename):
+    """Load data from a pickle file in the datasets directory"""
     completeName = os.path.join("./datasets/", filename)
     with open(completeName, 'rb') as pkl_file:
         data = pickle.load(pkl_file)
     return data
 
 class UCTNode():
+    """
+    MCTS tree node implementation
+
+    Adopted from https://github.com/plkmo/AlphaZero_Connect4/blob/01ff24aae145ccd23e58f630aa49582cade49847/src/MCTS_c4.py
+    """
     def __init__(self, game, move, parent=None):
         self.game = game # state s
         self.move = move # action index
@@ -46,27 +55,34 @@ class UCTNode():
         
     @property
     def number_visits(self):
+        """Get the number of visits for this node from parent"""
         return self.parent.child_number_visits[self.move]
 
     @number_visits.setter
     def number_visits(self, value):
+        """Set the number of visits for this node in parent"""
         self.parent.child_number_visits[self.move] = value
     
     @property
     def total_value(self):
+        """Get the total value for this node from parent"""
         return self.parent.child_total_value[self.move]
     
     @total_value.setter
     def total_value(self, value):
+        """Set the total value for this node in parent"""
         self.parent.child_total_value[self.move] = value
     
     def child_Q(self):
+        """Calculate Q values (exploitation term) for all children"""
         return self.child_total_value / (1 + self.child_number_visits)
     
     def child_U(self, c_puct=1.0):
+        """Calculate U values (exploration term) for all children"""
         return c_puct * self.child_priors * math.sqrt(self.number_visits) / (1 + self.child_number_visits)
     
     def best_child(self, c_puct=1.0):
+        """Select the best child based on Q+U values"""
         if self.action_idxes != []:
             bestmove = self.child_Q() + self.child_U(c_puct)
             bestmove = self.action_idxes[np.argmax(bestmove[self.action_idxes])]
@@ -75,6 +91,10 @@ class UCTNode():
         return bestmove
     
     def select_leaf(self, c_puct=1.0):
+        """
+        Select a leaf node by traversing the tree using the PUCT algorithm
+        until reaching an unexpanded node
+        """
         current = self
         while current.is_expanded:
             best_move = current.best_child(c_puct)
@@ -82,6 +102,10 @@ class UCTNode():
         return current
     
     def add_dirichlet_noise(self,action_idxs,child_priors):
+        """
+        Add Dirichlet noise to the prior probabilities at the root node
+        to encourage exploration
+        """
         valid_child_priors = child_priors[action_idxs] # select only legal moves entries in child_priors array
         valid_child_priors = 0.75 * valid_child_priors \
             + 0.25 * np.random.dirichlet(
@@ -91,6 +115,10 @@ class UCTNode():
         return child_priors
     
     def expand(self, child_priors):
+        """
+        Expand the node by setting prior probabilities for all possible actions
+        from the current state
+        """
         self.is_expanded = True
         action_idxs = self.game.actions()
         c_p = child_priors
@@ -104,10 +132,15 @@ class UCTNode():
         self.child_priors = c_p
     
     def decode_n_move_pieces(self,board,move):
+        """Execute a move on the board"""
         board.drop_piece(move)
         return board
             
     def maybe_add_child(self, move):
+        """
+        Add a child node for the given move if it doesn't exist yet,
+        and return the child node
+        """
         if move not in self.children:
             copy_board = copy.deepcopy(self.game) # make copy of board
             copy_board = self.decode_n_move_pieces(copy_board,move)
@@ -115,6 +148,10 @@ class UCTNode():
         return self.children[move]
     
     def backup(self, value_estimate: float):
+        """
+        Update the node statistics (visits and values) by propagating
+        the value estimate up the tree
+        """
         current = self
         while current.parent is not None:
             current.number_visits += 1
@@ -126,6 +163,10 @@ class UCTNode():
 
 
 class DummyNode(object):
+    """
+    Dummy node to serve as the parent of the root node in the MCTS tree,
+    storing visit counts and values
+    """
     def __init__(self):
         self.parent = None
         self.child_total_value = collections.defaultdict(float)
@@ -133,6 +174,10 @@ class DummyNode(object):
 
 
 class BatchedEvaluator:
+    """
+    Evaluates multiple leaf nodes in batches to improve efficiency
+    when using neural networks
+    """
     def __init__(self, net, device, batch_size=1):
         self.net = net
         self.device = device
@@ -141,6 +186,7 @@ class BatchedEvaluator:
         self._buf_leaves = []
 
     def enqueue(self, leaf):
+        """Add a leaf node to the evaluation queue"""
         s = encode_board(leaf.game)
         t = torch.from_numpy(s.transpose(2,0,1)).float()
         self._buf_states.append(t)
@@ -150,6 +196,10 @@ class BatchedEvaluator:
 
     @torch.no_grad()
     def flush(self):
+        """
+        Process all queued leaf nodes by evaluating them with the neural network
+        and updating the tree accordingly
+        """
         if not self._buf_states: return
         batch = torch.stack(self._buf_states, dim=0).to(
             self.device, non_blocking=True
@@ -168,6 +218,22 @@ class BatchedEvaluator:
 
 
 def UCT_search(game_state, num_reads, net, temp, device, c_puct=1.0, batch_size=1):
+    """
+    Perform MCTS search from the given game state using the neural network
+    for evaluation
+    
+    Args:
+        game_state: Current state of the game
+        num_reads: Number of MCTS simulations to run
+        net: Neural network for state evaluation
+        temp: Temperature parameter for exploration
+        device: Device to run computations on (CPU/GPU)
+        c_puct: Exploration constant for PUCT algorithm
+        batch_size: Batch size for neural network evaluation
+        
+    Returns:
+        Root node of the MCTS tree
+    """
     root = UCTNode(game_state, move=None, parent=DummyNode())
     evaluator = BatchedEvaluator(net, device, batch_size=batch_size)
     for _ in range(num_reads):
@@ -178,11 +244,27 @@ def UCT_search(game_state, num_reads, net, temp, device, c_puct=1.0, batch_size=
 
 
 def get_policy(root, temp=1):
+    """
+    Extract the policy (move probabilities) from the visit counts at the root node,
+    applying a temperature parameter to control exploration vs. exploitation
+    """
     return ((root.child_number_visits)**(1/temp))/sum(root.child_number_visits**(1/temp))
 
 
 @torch.no_grad()
 def MCTS_self_play(game_queue, connectnet, cpu, configs, iteration, device, progress_queue=None):
+    """
+    Perform self-play games using MCTS and the neural network, generating training data
+    
+    Args:
+        game_queue: Queue of game indices to process
+        connectnet: Neural network model
+        cpu: CPU ID for this process
+        configs: Configuration parameters
+        iteration: Current training iteration
+        device: Device to run computations on
+        progress_queue: Queue to report progress for the progress bar
+    """
     os.makedirs("datasets/iter_%d" % iteration, exist_ok=True)
     os.makedirs("games", exist_ok=True)
     
@@ -249,6 +331,16 @@ def MCTS_self_play(game_queue, connectnet, cpu, configs, iteration, device, prog
             progress_queue.put(1)
    
 def run_MCTS(configs, connectnet, start_idx=0, iteration=0, device="cuda"):
+    """
+    Run multiple MCTS self-play processes in parallel
+    
+    Args:
+        configs: Configuration parameters
+        connectnet: Neural network model
+        start_idx: Starting index for game numbering
+        iteration: Current training iteration
+        device: Device to run computations on
+    """
     connectnet.share_memory()
     mp.set_start_method('spawn', force=True)
 

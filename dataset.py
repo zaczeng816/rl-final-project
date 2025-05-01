@@ -3,6 +3,7 @@ import numpy as np
 from torch.utils.data import Dataset
 
 class BoardDataset(Dataset):
+    ''' Dataset for the board data'''
     def __init__(self, dataset): # dataset = np.array of (s, p, v)
         self.X = dataset[:,0]
         self.y_p, self.y_v = dataset[:,1], dataset[:,2]
