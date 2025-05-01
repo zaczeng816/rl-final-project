@@ -1,3 +1,9 @@
+"""
+Evaluate two Connect Four agents (main and opponent) on a customized Connect Four Gym environment.
+Plays a series of games, and reports wins, losses, draws and win rate.
+
+"""
+
 import argparse
 import yaml
 import numpy as np
@@ -6,6 +12,23 @@ from agents import HeuristicAgent, AlphaZeroAgent, RandomAgent
 
 
 def parse_args():
+
+    """
+    Parse command-line arguments for agent evaluation.
+
+    Returns:
+        argparse.Namespace: Parsed arguments including:
+          - agent:        Name of the main agent class to evaluate.
+          - config:       Path to the YAML config (for AlphaZeroAgent).
+          - model_checkpoint: Path to the model checkpoint (for AlphaZeroAgent).
+          - opponent:     Name of the opponent agent class.
+          - win_length:   Number of connected pieces required to win.
+          - row:          Number of rows in the board.
+          - col:          Number of columns in the board.
+          - games:        Number of games to play.
+          - render:       Whether to render the board.
+    """
+
     parser = argparse.ArgumentParser(description="Evaluate 2 agents on the new custom environment")
 
     # Main player
@@ -22,7 +45,6 @@ def parse_args():
     parser.add_argument("--col", "-col", type=int, default=7, help="Board Col")
     parser.add_argument("--games", "-n", type=int, default=100, help="Number of games to play")
     parser.add_argument("--render", "-r",  default=False, help="Render ASCII board each move (if the env supports it)")
-    parser.add_argument("--verbose", "-v",  type=int, default=0, help="Verbose level per game (0-7)")
 
     return parser.parse_args()
 
@@ -43,7 +65,7 @@ def main():
         opponent_agent = HeuristicAgent()
     elif args.opponent == "RandomAgent":
         opponent_agent = RandomAgent()
-    elif args.agent == "AlphaZeroAgent":
+    elif args.opponent == "AlphaZeroAgent":
         if args.config is None or args.model_checkpoint is None:
             raise ValueError("Please provide a config and model checkpoint for AlphaZeroAgent")
         opponent_agent = AlphaZeroAgent(args.config, args.model_checkpoint)
@@ -61,7 +83,7 @@ def main():
     wins = losses = draws = 0
 
     for game in range(args.games):
-        if args.verbose > 0: print(f"\n=== Game {game+1}/{args.games} ===")
+        print(f"\n=== Game {game+1}/{args.games} ===")
         obs, _ = env.reset()
         done = False
         ep_reward = 0
@@ -80,18 +102,17 @@ def main():
                 env.render()
 
         # Report game result
-        if args.verbose > 0:
-            print(f"Game {game+1} ended with reward: {ep_reward}")        
+        print(f"Game {game+1} ended with reward: {ep_reward}")        
         
         if ep_reward > 0:
             wins += 1
-            if args.verbose > 0: print(f"{env.main_player_name} won!")
+            print(f"{env.main_player_name} won!")
         elif ep_reward < 0:
             losses += 1
-            if args.verbose > 0: print(f"{env.opponent_name} won!")
+            print(f"{env.opponent_name} won!")
         else:
             draws += 1
-            if args.verbose > 0: print("Draw!")
+            print("Draw!")
 
     # Final summary
     print("\n=== Final Results ===")
