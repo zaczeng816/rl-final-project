@@ -43,55 +43,72 @@ python elo_evaluation.py --config configs/h6_w7_c4_small_200.yaml --model_checkp
 ## Agents
 
 ### AlphaZeroAgent
-#### Overview
-AlphaZeroAgent is an advanced Connect4-playing agent built on deep reinforcement learning and Monte Carlo Tree Search (MCTS), inspired by the original AlphaZero algorithm from DeepMind. It leverages a powerful deep neural network to guide its search for optimal moves and is capable of learning from self-play without any handcrafted rules or prior human knowledge.
+
+#### 🧠 Overview  
+**AlphaZeroAgent** is an advanced Connect4-playing agent built on deep reinforcement learning and Monte Carlo Tree Search (MCTS), inspired by the original AlphaZero algorithm from DeepMind. It leverages a powerful deep neural network to guide its search for optimal moves and is capable of learning from self-play without any handcrafted rules or prior human knowledge.
 
 This agent combines planning (via MCTS) and generalization (via a neural network) to play Connect4 at a high level.
 
-#### 🚀 How It Works
-
+#### 🚀 How It Works  
 The AlphaZeroAgent works by simulating thousands of potential future game states from the current board using Monte Carlo Tree Search. Each simulated state is evaluated by a deep residual convolutional neural network, which outputs:
 
-A policy vector (probability distribution over legal moves)
-
-A value (predicted outcome of the game from the current player's perspective)
+- A **policy vector** (probability distribution over legal moves)  
+- A **value** (predicted outcome of the game from the current player's perspective)
 
 The neural network guides the tree search and improves efficiency by focusing on promising moves. The agent then samples a move based on the visit counts of the search tree, with added randomness controlled by a temperature parameter to balance exploration and exploitation.
 
-### Heuristic agent
-The agent's decision-making process follows a prioritized heuristic approach to select the most optimal move available at any point during the game. Here's a breakdown of the strategy:
+---
 
-#### Win Immediately
-If there's a move that allows the agent to win instantly, it takes it without hesitation.
+### HeuristicAgent
 
-#### Block Immediate Threats
-If the opponent has a potential winning move on their next turn, the agent blocks it.
+#### 🧠 Overview  
+The HeuristicAgent is a rule-based Connect4 agent that makes decisions by applying a prioritized set of heuristics to choose the most strategic move in a given board state.
 
-#### Avoid Dangerous Moves
-The agent checks if its move would allow the opponent to win immediately afterward (e.g., by stacking on top of it). Such risky moves are avoided when possible.
+#### 🧩 Decision Strategy
 
-#### Create Future Opportunities
-The agent seeks to build strong positions by placing tokens that form a chain of (win_length - 1) with open ends, increasing the chances of winning in future turns.
+- **Win Immediately**  
+  If there's a move that allows the agent to win instantly, it takes it without hesitation.
 
-#### Fallback Strategy
-If no immediate win, block, or setup is found, the agent selects a valid random move, preferring safer positions. If all moves are risky, it chooses the least harmful option.
+- **Block Immediate Threats**  
+  If the opponent has a potential winning move on their next turn, the agent blocks it.
 
-### Child Player Agent
-ChildPlayer is a simple heuristic-based Connect4 agent designed to demonstrate basic strategic thinking. It follows a two-step decision process:
+- **Avoid Dangerous Moves**  
+  The agent checks if its move would allow the opponent to win immediately afterward (e.g., by stacking on top of it). Such risky moves are avoided when possible.
 
-- Immediate Win Check: It scans all possible valid moves and plays the first one that results in an instant win.
+- **Create Future Opportunities**  
+  The agent seeks to build strong positions by placing tokens that form a chain of `(win_length - 1)` with open ends, increasing the chances of winning in future turns.
 
-- Fallback to Random: If no winning move is found, it selects randomly from the set of legal moves.
+- **Fallback Strategy**  
+  If no immediate win, block, or setup is found, the agent selects a valid random move, preferring safer positions. If all moves are risky, it chooses the least harmful option.
 
+---
 
-### Baby Player Agent
-BabyPlayer is the most basic Connect4 agent, relying entirely on randomness. It chooses any column at random, without considering the current state of the board, possible wins, losses, or legal move validity (assumed to be handled by the environment).
+### ChildPlayer
 
-- No Heuristics: Makes no attempt to win or block.
+#### 🧠 Overview  
+**ChildPlayer** is a simple heuristic-based Connect4 agent designed to demonstrate basic strategic thinking. It follows a two-step decision process:
 
-- No Game Awareness: Does not analyze the board or opponent's strategy.
+- **Immediate Win Check**  
+  It scans all possible valid moves and plays the first one that results in an instant win.
 
-- Non-Deterministic: Every move is randomly chosen, leading to unpredictable behavior.
+- **Fallback to Random**  
+  If no winning move is found, it selects randomly from the set of legal moves.
+
+---
+
+### BabyPlayer
+
+#### 🧠 Overview  
+**BabyPlayer** is the most basic Connect4 agent, relying entirely on randomness. It chooses any column at random, without considering the current state of the board, possible wins, losses, or legal move validity (assumed to be handled by the environment).
+
+- **No Heuristics**  
+  Makes no attempt to win or block.
+
+- **No Game Awareness**  
+  Does not analyze the board or opponent's strategy.
+
+- **Non-Deterministic**  
+  Every move is randomly chosen, leading to unpredictable behavior.
 
 ---
 
