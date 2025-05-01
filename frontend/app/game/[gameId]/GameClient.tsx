@@ -27,6 +27,7 @@ export default function GameClient() {
   const params = useParams();
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
+  const [makingMove, setMakingMove] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [aiThinking, setAiThinking] = useState(false);
@@ -54,14 +55,15 @@ export default function GameClient() {
   const handleMakeMove = async (column: number) => {
     try {
       // Make player's move
+      setMakingMove(true);
       const data = await makeMove(gameId, column);
       setGameState(data);
-
+      setMakingMove(false);
       // If it's still the AI's turn after player's move, wait and make AI move
       if (!data.game_over && data.current_player !== (data.player_color === 'black' ? 0 : 1)) {
         setAiThinking(true);
         // Wait for 1 second before making AI move
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         const aiData = await makeAIMove(gameId);
         setGameState(aiData);
@@ -209,7 +211,7 @@ export default function GameClient() {
                 <div key={index} className="w-12 flex justify-center">
                   <Button
                     onClick={() => handleMakeMove(index)}
-                    disabled={gameState.game_over || !isPlayerTurn || aiThinking || isColumnFull(index)}
+                    disabled={gameState.game_over || !isPlayerTurn || aiThinking || isColumnFull(index) || makingMove}
                     className={`transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90 
                       ${isColumnFull(index) ? 'opacity-50 cursor-not-allowed' : ''}
                       disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:bg-primary cursor-pointer`}
