@@ -61,6 +61,7 @@ class GameState(BaseModel):
     winner: Optional[str] = None
     player_color: str  # 'black' or 'white'
     created_at: int
+    winning_positions: Optional[List[List[int]]] = None
 
 class MoveRequest(BaseModel):
     column: int
@@ -73,6 +74,7 @@ class GameResponse(BaseModel):
     winner: Optional[str] = None
     message: str
     player_color: str
+    winning_positions: Optional[List[List[int]]] = None
 
 class GameConfig(BaseModel):
     num_cols: int
@@ -232,7 +234,8 @@ async def make_move(game_id: str, move: MoveRequest):
             game_over=game_state.game_over,
             winner=game_state.winner,
             message="Game is already over",
-            player_color=game_state.player_color
+            player_color=game_state.player_color,
+            winning_positions=game_state.winning_positions
         )
     
     # Check if it's the player's turn
@@ -263,10 +266,12 @@ async def make_move(game_id: str, move: MoveRequest):
     # Check for winner after player's move
     winner = None
     game_over = False
+    winning_positions = None
     if board.check_winner():
         game_over = True
         # The winner is the previous player (the one who just made the move)
         winner = "black" if game_state.current_player == 0 else "white"
+        winning_positions = board.get_winning_positions()
     elif not board.actions():
         game_over = True
     
@@ -276,6 +281,7 @@ async def make_move(game_id: str, move: MoveRequest):
     game_state.moves_count += 1
     game_state.game_over = game_over
     game_state.winner = winner
+    game_state.winning_positions = winning_positions
     
     update_game_state(game_state)
     
@@ -285,8 +291,9 @@ async def make_move(game_id: str, move: MoveRequest):
         current_player=game_state.current_player,
         game_over=game_state.game_over,
         winner=game_state.winner,
-        message="Move made successfully",
-        player_color=game_state.player_color
+        message="Move successful",
+        player_color=game_state.player_color,
+        winning_positions=game_state.winning_positions
     )
 
 @app.post("/games/{game_id}/ai-move", response_model=GameResponse)
@@ -301,7 +308,8 @@ async def make_ai_move_endpoint(game_id: str):
             game_over=game_state.game_over,
             winner=game_state.winner,
             message="Game is already over",
-            player_color=game_state.player_color
+            player_color=game_state.player_color,
+            winning_positions=game_state.winning_positions
         )
     
     # Check if it's the AI's turn
@@ -328,10 +336,12 @@ async def make_ai_move_endpoint(game_id: str):
     # Check for winner after AI's move
     winner = None
     game_over = False
+    winning_positions = None
     if board.check_winner():
         game_over = True
         # The winner is the previous player (the one who just made the move)
         winner = "black" if game_state.current_player == 0 else "white"
+        winning_positions = board.get_winning_positions()
     elif not board.actions():
         game_over = True
     
@@ -341,6 +351,7 @@ async def make_ai_move_endpoint(game_id: str):
     game_state.moves_count += 1
     game_state.game_over = game_over
     game_state.winner = winner
+    game_state.winning_positions = winning_positions
     
     update_game_state(game_state)
     
@@ -350,8 +361,9 @@ async def make_ai_move_endpoint(game_id: str):
         current_player=game_state.current_player,
         game_over=game_state.game_over,
         winner=game_state.winner,
-        message="AI move made successfully",
-        player_color=game_state.player_color
+        message="AI move successful",
+        player_color=game_state.player_color,
+        winning_positions=game_state.winning_positions
     )
 
 @app.get("/config", response_model=GameConfig)

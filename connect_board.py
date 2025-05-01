@@ -73,6 +73,42 @@ class Board():
 
         return False
 
+    def get_winning_positions(self):
+        ''' Get the positions of the winning streak if there is one
+        Returns:
+            list - List of winning positions if there's a winner, empty list otherwise
+        '''
+        target = "O" if self.player == 1 else "X"  # Check for the previous player's pieces
+        winning_positions = []
+
+        directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+
+        for r in range(self.num_rows):
+            for c in range(self.num_cols):
+                if self.current_board[r, c] != target:
+                    continue
+
+                # Try each direction
+                for dr, dc in directions:
+                    count = 1
+                    positions = [(r, c)]
+                    for i in range(1, self.win_streak):
+                        rr, cc = r + dr * i, c + dc * i
+                        if (
+                            0 <= rr < self.num_rows and
+                            0 <= cc < self.num_cols and
+                            self.current_board[rr, cc] == target
+                        ):
+                            count += 1
+                            positions.append((rr, cc))
+                        else:
+                            break
+
+                    if count >= self.win_streak:
+                        return positions
+
+        return []
+
     def actions(self):
         ''' Returns the list of columns that are playable e.g. not full'''
         acts = []

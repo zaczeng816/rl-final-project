@@ -19,6 +19,7 @@ interface GameState {
   winner: string | null;
   message: string;
   player_color: string;
+  winning_positions?: [number, number][];
 }
 
 export default function GameClient() {
@@ -111,6 +112,16 @@ export default function GameClient() {
     (gameState.current_player === 1 && gameState.player_color === 'white')
   );
 
+  const isWinningPosition = (row: number, col: number) => {
+    if (!gameState?.winning_positions) return false;
+    return gameState.winning_positions.some(([r, c]) => r === row && c === col);
+  };
+
+  const isColumnFull = (colIndex: number) => {
+    if (!gameState) return false;
+    return gameState.board[0][colIndex] !== " ";
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 gap-8">
       {gameState.game_over ? (
@@ -130,7 +141,11 @@ export default function GameClient() {
               row.map((cell, colIndex) => (
                 <div
                   key={`${rowIndex}-${colIndex}`}
-                  className="w-12 h-12 border border-gray-300 flex items-center justify-center"
+                  className={`w-12 h-12 border border-gray-300 flex items-center justify-center ${
+                    isWinningPosition(rowIndex, colIndex) 
+                      ? 'bg-green-500 text-white animate-pulse' 
+                      : ''
+                  }`}
                 >
                   {cell}
                 </div>
@@ -178,7 +193,11 @@ export default function GameClient() {
                 row.map((cell, colIndex) => (
                   <div
                     key={`${rowIndex}-${colIndex}`}
-                    className="w-12 h-12 border border-gray-300 flex items-center justify-center"
+                    className={`w-12 h-12 border border-gray-300 flex items-center justify-center ${
+                      isWinningPosition(rowIndex, colIndex) 
+                        ? 'bg-green-500 text-white animate-pulse' 
+                        : ''
+                    }`}
                   >
                     {cell}
                   </div>
@@ -190,8 +209,10 @@ export default function GameClient() {
                 <div key={index} className="w-12 flex justify-center">
                   <Button
                     onClick={() => handleMakeMove(index)}
-                    disabled={gameState.game_over || !isPlayerTurn || aiThinking}
-                    className="transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90 disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:bg-primary cursor-pointer"
+                    disabled={gameState.game_over || !isPlayerTurn || aiThinking || isColumnFull(index)}
+                    className={`transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-primary/90 
+                      ${isColumnFull(index) ? 'opacity-50 cursor-not-allowed' : ''}
+                      disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:bg-primary cursor-pointer`}
                   >
                     Drop
                   </Button>
