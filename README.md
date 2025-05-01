@@ -84,6 +84,15 @@ ChildPlayer is a simple heuristic-based Connect4 agent designed to demonstrate b
 - Fallback to Random: If no winning move is found, it selects randomly from the set of legal moves.
 
 
+### Baby Player Agent
+BabyPlayer is the most basic Connect4 agent, relying entirely on randomness. It chooses any column at random, without considering the current state of the board, possible wins, losses, or legal move validity (assumed to be handled by the environment).
+
+- No Heuristics: Makes no attempt to win or block.
+
+- No Game Awareness: Does not analyze the board or opponent's strategy.
+
+- Non-Deterministic: Every move is randomly chosen, leading to unpredictable behavior.
+
 ---
 
 ## Interactive Game Play On Web
