@@ -77,6 +77,8 @@ def main():
         opponent_name=args.opponent,
         main_player_name="AlphaZeroAgent",
         main_player_id=1,
+        cols=args.col,
+        rows=args.row,
         win_length=args.win_length
     )
 
