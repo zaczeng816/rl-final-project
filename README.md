@@ -42,6 +42,22 @@ python elo_evaluation.py --config configs/h6_w7_c4_small_200.yaml --model_checkp
 
 ## Agents
 
+### AlphaZeroAgent
+#### Overview
+AlphaZeroAgent is an advanced Connect4-playing agent built on deep reinforcement learning and Monte Carlo Tree Search (MCTS), inspired by the original AlphaZero algorithm from DeepMind. It leverages a powerful deep neural network to guide its search for optimal moves and is capable of learning from self-play without any handcrafted rules or prior human knowledge.
+
+This agent combines planning (via MCTS) and generalization (via a neural network) to play Connect4 at a high level.
+
+#### 🚀 How It Works
+
+The AlphaZeroAgent works by simulating thousands of potential future game states from the current board using Monte Carlo Tree Search. Each simulated state is evaluated by a deep residual convolutional neural network, which outputs:
+
+A policy vector (probability distribution over legal moves)
+
+A value (predicted outcome of the game from the current player's perspective)
+
+The neural network guides the tree search and improves efficiency by focusing on promising moves. The agent then samples a move based on the visit counts of the search tree, with added randomness controlled by a temperature parameter to balance exploration and exploitation.
+
 ### Heuristic agent
 The agent's decision-making process follows a prioritized heuristic approach to select the most optimal move available at any point during the game. Here's a breakdown of the strategy:
 
@@ -60,22 +76,12 @@ The agent seeks to build strong positions by placing tokens that form a chain of
 #### Fallback Strategy
 If no immediate win, block, or setup is found, the agent selects a valid random move, preferring safer positions. If all moves are risky, it chooses the least harmful option.
 
+### Child Player Agent
+ChildPlayer is a simple heuristic-based Connect4 agent designed to demonstrate basic strategic thinking. It follows a two-step decision process:
 
-### AlphaZeroAgent
-#### Overview
-AlphaZeroAgent is an advanced Connect4-playing agent built on deep reinforcement learning and Monte Carlo Tree Search (MCTS), inspired by the original AlphaZero algorithm from DeepMind. It leverages a powerful deep neural network to guide its search for optimal moves and is capable of learning from self-play without any handcrafted rules or prior human knowledge.
+- Immediate Win Check: It scans all possible valid moves and plays the first one that results in an instant win.
 
-This agent combines planning (via MCTS) and generalization (via a neural network) to play Connect4 at a high level.
-
-#### 🚀 How It Works
-
-The AlphaZeroAgent works by simulating thousands of potential future game states from the current board using Monte Carlo Tree Search. Each simulated state is evaluated by a deep residual convolutional neural network, which outputs:
-
-A policy vector (probability distribution over legal moves)
-
-A value (predicted outcome of the game from the current player's perspective)
-
-The neural network guides the tree search and improves efficiency by focusing on promising moves. The agent then samples a move based on the visit counts of the search tree, with added randomness controlled by a temperature parameter to balance exploration and exploitation.
+- Fallback to Random: If no winning move is found, it selects randomly from the set of legal moves.
 
 
 ---
