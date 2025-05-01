@@ -119,6 +119,11 @@ export default function GameClient() {
     return gameState.winning_positions.some(([r, c]) => r === row && c === col);
   };
 
+  const getWinningColor = () => {
+    if (!gameState?.winner) return '';
+    return gameState.winner === gameState.player_color ? 'bg-green-500' : 'bg-orange-500';
+  };
+
   const isColumnFull = (colIndex: number) => {
     if (!gameState) return false;
     return gameState.board[0][colIndex] !== " ";
@@ -145,7 +150,7 @@ export default function GameClient() {
                   key={`${rowIndex}-${colIndex}`}
                   className={`w-12 h-12 border border-gray-300 flex items-center justify-center ${
                     isWinningPosition(rowIndex, colIndex) 
-                      ? 'bg-green-500 text-white animate-pulse' 
+                      ? `${getWinningColor()} text-white animate-pulse` 
                       : ''
                   }`}
                 >
@@ -197,7 +202,7 @@ export default function GameClient() {
                     key={`${rowIndex}-${colIndex}`}
                     className={`w-12 h-12 border border-gray-300 flex items-center justify-center ${
                       isWinningPosition(rowIndex, colIndex) 
-                        ? 'bg-green-500 text-white animate-pulse' 
+                        ? `${getWinningColor()} text-white animate-pulse` 
                         : ''
                     }`}
                   >
