@@ -1,7 +1,6 @@
 """
 Elo evaluation of various agents on a customized Connect Four Gym environment.
-Saves a fixed starting Elo for each agent, plays head-to-head matches, updates ratings,
-and prints a final leaderboard.
+Saves a fixed starting Elo for each agent, plays head-to-head matches, updates ratings, and prints a final leaderboard.
 
 """
 
