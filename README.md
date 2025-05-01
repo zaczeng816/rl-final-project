@@ -1,6 +1,6 @@
 # rl-final-project
 
-## Setup
+## Python Environment Setup
 
 ```bash
 conda create -n rl-final python==3.10 -y
@@ -50,11 +50,11 @@ python elo_evaluation.py --config configs/h6_w7_c4_small_200.yaml --model_checkp
 `frontend/` is the folder for the frontend server using `next.js`.
 
 #### Running the servers
-Use `start_backend.sh` to start the backend server.  
+Run `start_backend.sh` to start the backend server.  
 - this will start a fastapi server and a redis on docker which stores the game states
 
-Use `start_frontend.sh` to start the frontend server.
-- this will install frontend dependencies and start a react app on `http://localhost:3000`
+Run `start_frontend.sh` to start the frontend server.
+- this will install frontend dependencies and start a Next.js app on `http://localhost:3000`
 
 Open `http://localhost:3000` in your browser to play the game.
 
