@@ -37,7 +37,7 @@ def parse_args():
     parser.add_argument("--model_checkpoint", "-mc",  required=False)
 
     # Opponent
-    parser.add_argument("--opponent", "-o", choices=['RandomAgent', 'HeuristicAgent', 'AlphaZeroAgent'], help="Opponent agent: RandomAgent, HeuristicAgent")
+    parser.add_argument("--opponent", "-o", choices=['RandomAgent', 'HeuristicAgent', 'AlphaZeroAgent'], required=True, help="Opponent agent: RandomAgent, HeuristicAgent")
 
     # Evaluation options
     parser.add_argument("--win_length", "-w", type=int, default=4, help="Number to connect in order to win ")
