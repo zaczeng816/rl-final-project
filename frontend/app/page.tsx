@@ -57,6 +57,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 gap-8">
       <h1 className="text-4xl font-bold">Connect 4</h1>
+      <code className="text-gray-500">{"made with ❤️ by [zac, jasper, cindy, michelle]"}</code>
       
       <Tabs defaultValue="new-game" className="w-full max-w-2xl">
         <TabsList className="grid w-full grid-cols-2">
