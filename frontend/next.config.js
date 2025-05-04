@@ -1,19 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Disable automatic HTTPS redirect
+  // Trust the proxy headers
   async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'X-Forwarded-Proto',
-            value: 'https',
-          },
-        ],
-      },
-    ];
+    return [];
+  },
+  // Trust the proxy
+  async rewrites() {
+    return [];
   },
 };
 
