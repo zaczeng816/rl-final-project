@@ -18,7 +18,7 @@ interface GameHistory {
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [showSelection, setShowSelection] = useState(true);
+  const [activeTab, setActiveTab] = useState("new-game");
   const [gameHistory, setGameHistory] = useState<GameHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
 
@@ -37,6 +37,25 @@ export default function Home() {
   const formatDate = (timestamp: number) => {
     return format(new Date(timestamp), "MMM d, yyyy HH:mm:ss");
   };
+
+  const loadHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const data = await getGameHistory();
+      setGameHistory(data);
+    } catch (error) {
+      console.error("Error loading game history:", error);
+      setGameHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "history") {
+      loadHistory();
+    }
+  }, [activeTab]);
 
   const NewGame = () => {
     return (
@@ -64,29 +83,7 @@ export default function Home() {
     );
   };
 
-  const loadHistory = async () => {
-    try {
-      const data = await getGameHistory();
-      setGameHistory(data);
-    } catch (error) {
-      console.error("Error loading game history:", error);
-      setGameHistory([]);
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadHistory();
-  }, [showSelection]);
-
-  const History = ({
-    historyLoading,
-    games,
-  }: {
-    historyLoading: boolean;
-    games: GameHistory[];
-  }) => {
+  const History = () => {
     return (
       <TabsContent value="history" className="mt-6">
         {historyLoading ? (
@@ -142,31 +139,27 @@ export default function Home() {
         [zac, jasper, cindy, mish]
       </code>
 
-      <Tabs defaultValue="new-game" className="w-full max-w-2xl">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full max-w-2xl"
+      >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger
             value="new-game"
             className="hover:scale-105 data-[state=active]:scale-105 transition-transform duration-200 cursor-pointer"
-            onClick={() => setShowSelection(true)}
           >
             New Game
           </TabsTrigger>
           <TabsTrigger
             value="history"
             className="hover:scale-105 data-[state=active]:scale-105 transition-transform duration-200 cursor-pointer"
-            onClick={() => {
-              setShowSelection(false);
-              loadHistory();
-            }}
           >
             Game History
           </TabsTrigger>
         </TabsList>
-        {showSelection ? (
-          <NewGame />
-        ) : (
-          <History historyLoading={historyLoading} games={gameHistory} />
-        )}
+        <NewGame />
+        <History />
       </Tabs>
     </div>
   );
