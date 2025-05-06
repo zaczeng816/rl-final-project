@@ -1,7 +1,7 @@
 import uuid
 import json
 from typing import Optional, List
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import redis
@@ -64,6 +64,7 @@ class GameState(BaseModel):
     player_color: str  # 'black' or 'white'
     created_at: int
     winning_positions: Optional[List[List[int]]] = None
+    browser_signature: Optional[str] = None
 
 class MoveRequest(BaseModel):
     column: int
@@ -98,7 +99,7 @@ def generate_game_id() -> str:
     random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
     return f"{timestamp}-{random_str}"
 
-def create_new_game(player_color: str) -> GameState:
+def create_new_game(player_color: str, browser_signature: Optional[str] = None) -> GameState:
     game_id = generate_game_id()
     board = cboard(
         num_cols=configs['board']['num_cols'],
@@ -114,13 +115,19 @@ def create_new_game(player_color: str) -> GameState:
         game_over=False,
         player_color=player_color,
         created_at=int(time.time() * 1000),
-        winning_positions=None
+        winning_positions=None,
+        browser_signature=browser_signature
     )
     
     # Store in Redis
     redis_client.set(f"game:{game_id}", json.dumps(game_state.dict()))
     # Add to game history list
     redis_client.lpush("game_history", game_id)
+    
+    # If browser signature exists, add to user's game list
+    if browser_signature:
+        redis_client.lpush(f"user_games:{browser_signature}", game_id)
+    
     return game_state
 
 def get_game_state(game_id: str) -> GameState:
@@ -147,9 +154,15 @@ def make_ai_move(board: cboard) -> cboard:
     ai_move = np.random.choice(np.arange(board.num_cols), p=policy)
     return do_decode_n_move_pieces(board, ai_move)
 
-def get_game_history(limit: int = 10) -> List[GameHistory]:
+def get_game_history(limit: int = 10, browser_signature: Optional[str] = None) -> List[GameHistory]:
     try:
-        game_ids = redis_client.lrange("game_history", 0, limit - 1)
+        if browser_signature:
+            # Get user-specific game history
+            game_ids = redis_client.lrange(f"user_games:{browser_signature}", 0, limit - 1)
+        else:
+            # Get global game history
+            game_ids = redis_client.lrange("game_history", 0, limit - 1)
+            
         history = []
         for game_id in game_ids:
             try:
@@ -177,15 +190,15 @@ async def test_endpoint():
     return {"message": "API is working"}
 
 @app.get("/games/history", response_model=List[GameHistory])
-async def get_history(limit: int = 10):
-    return get_game_history(limit)
+async def get_history(limit: int = 10, x_browser_signature: Optional[str] = Header(None)):
+    return get_game_history(limit, x_browser_signature)
 
 @app.post("/games", response_model=GameResponse)
-async def create_game(request: CreateGameRequest):
+async def create_game(request: CreateGameRequest, x_browser_signature: Optional[str] = Header(None)):
     if request.player_color not in ['black', 'white']:
         raise HTTPException(status_code=400, detail="Invalid player color. Must be 'black' or 'white'")
     
-    game_state = create_new_game(request.player_color)
+    game_state = create_new_game(request.player_color, x_browser_signature)
     
     # If player is white, make AI's first move
     if request.player_color == 'white':
