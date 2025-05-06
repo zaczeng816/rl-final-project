@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   backend:
@@ -8,7 +8,7 @@ services:
     environment:
       - REDIS_HOST=redis
       - CONNECT4_CONFIG=configs/h6_w7_c4_small_600.yaml
-      - CONNECT4_CHECKPOINT=model_ckpts/cc4_current_net__iter7.pth.tar
+      - CONNECT4_CHECKPOINT=final_ckpt/h6_w7_c4_current_net_small_200_step80000.pth
     volumes:
       - ./configs:/app/configs
       - ./model_ckpts:/app/model_ckpts
@@ -36,4 +36,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  redis_data: 
+  redis_data:
