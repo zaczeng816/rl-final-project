@@ -15,12 +15,16 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
+    networks:
+      - app-network
 
   redis:
     image: redis:alpine
     volumes:
       - redis_data:/data
     restart: unless-stopped
+    networks:
+      - app-network
 
   frontend:
     build:
@@ -34,6 +38,24 @@ services:
       - backend
       - redis
     restart: unless-stopped
+    networks:
+      - app-network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   redis_data:
