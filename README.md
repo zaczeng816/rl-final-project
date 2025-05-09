@@ -23,19 +23,24 @@ python train.py --config configs/h6_w7_c4_small_200.yaml --device cuda
 ## Evaluation
 
 ### Evaluate 2 agents:
+
 Baseline agents:
+
 - RandomAgent: selects uniform random valid moves.
 - HeuristicAgent: rule-based heuristic for win/block/threats.
+
 ```bash
 python evaluate_2agents.py --agent 'RandomAgent' --opponent 'HeuristicAgent'
 ```
 
 AlphaZeroAgent vs. selected agent:
+
 ```bash
 python evaluate_2agents.py --config configs/h6_w7_c4_small_200.yaml --model_checkpoint final_ckpt/h6_w7_c4_current_net_small_200_step80000.pth --opponent <pick an agent>
 ```
 
 ### Elo ladder:
+
 ```bash
 python elo_evaluation.py --config configs/h6_w7_c4_small_200.yaml --model_checkpoint final_ckpt/h6_w7_c4_current_net_small_200_step80000.pth
 ```
@@ -44,15 +49,17 @@ python elo_evaluation.py --config configs/h6_w7_c4_small_200.yaml --model_checkp
 
 ### AlphaZeroAgent
 
-#### 🧠 Overview  
+#### 🧠 Overview
+
 **AlphaZeroAgent** is an advanced Connect4-playing agent built on deep reinforcement learning and Monte Carlo Tree Search (MCTS), inspired by the original AlphaZero algorithm from DeepMind. It leverages a powerful deep neural network to guide its search for optimal moves and is capable of learning from self-play without any handcrafted rules or prior human knowledge.
 
 This agent combines planning (via MCTS) and generalization (via a neural network) to play Connect4 at a high level.
 
-#### 🚀 How It Works  
+#### 🚀 How It Works
+
 The AlphaZeroAgent works by simulating thousands of potential future game states from the current board using Monte Carlo Tree Search. Each simulated state is evaluated by a deep residual convolutional neural network, which outputs:
 
-- A **policy vector** (probability distribution over legal moves)  
+- A **policy vector** (probability distribution over legal moves)
 - A **value** (predicted outcome of the game from the current player's perspective)
 
 The neural network guides the tree search and improves efficiency by focusing on promising moves. The agent then samples a move based on the visit counts of the search tree, with added randomness controlled by a temperature parameter to balance exploration and exploitation.
@@ -61,7 +68,8 @@ The neural network guides the tree search and improves efficiency by focusing on
 
 ### HeuristicAgent
 
-#### 🧠 Overview  
+#### 🧠 Overview
+
 The HeuristicAgent is a rule-based Connect4 agent that makes decisions by applying a prioritized set of heuristics to choose the most strategic move in a given board state.
 
 #### 🧩 Decision Strategy
@@ -85,7 +93,8 @@ The HeuristicAgent is a rule-based Connect4 agent that makes decisions by applyi
 
 ### ChildPlayer
 
-#### 🧠 Overview  
+#### 🧠 Overview
+
 **ChildPlayer** is a simple heuristic-based Connect4 agent designed to demonstrate basic strategic thinking. It follows a two-step decision process:
 
 - **Immediate Win Check**  
@@ -98,7 +107,8 @@ The HeuristicAgent is a rule-based Connect4 agent that makes decisions by applyi
 
 ### BabyPlayer
 
-#### 🧠 Overview  
+#### 🧠 Overview
+
 **BabyPlayer** is the most basic Connect4 agent, relying entirely on randomness. It chooses any column at random, without considering the current state of the board, possible wins, losses, or legal move validity (assumed to be handled by the environment).
 
 - **No Heuristics**  
@@ -114,18 +124,31 @@ The HeuristicAgent is a rule-based Connect4 agent that makes decisions by applyi
 
 ## Interactive Game Play On Web
 
+### Simple way to spin up the servers
+
+```bash
+sudo docker compose up
+```
+
+### Alternatives to running the servers locally
+
 #### Requirements
+
 `npm` and `docker` are required to run the frontend and backend servers.
 
 #### File Structure
+
 `app.py` is the main file for the backend server using `fastapi`.
 `frontend/` is the folder for the frontend server using `next.js`.
 
 #### Running the servers
-Run `start_backend.sh` to start the backend server.  
+
+Run `start_backend.sh` to start the backend server.
+
 - this will start a fastapi server and a redis on docker which stores the game states
 
 Run `start_frontend.sh` to start the frontend server.
+
 - this will install frontend dependencies and start a Next.js app on `http://localhost:3000`
 
 Open `http://localhost:3000` in your browser to play the game.
@@ -133,4 +156,5 @@ Open `http://localhost:3000` in your browser to play the game.
 ## Acknowledgements
 
 The code structure and implementation is inspired by the following repository:
+
 - [AlphaZero Connect4](https://github.com/plkmo/AlphaZero_Connect4) by plkmo - Used as reference for the AlphaZero algorithm implementation and neural network architecture
