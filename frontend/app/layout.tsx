@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   title: "Connect 4 - Play Against AI",
   description:
     "Play Connect 4 against an AI opponent. Choose to play as O (first) or X (second) and test your strategy!",
+  verification: {
+    google: "ca-pub-8406329717517376",
+  },
 };
 
 export default function RootLayout({
@@ -27,11 +30,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <meta name="google-adsense-account" content="ca-pub-8406329717517376" />
         <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8406329717517376"
-          crossOrigin="anonymous"
+          id="adsbygoogle-init"
           strategy="afterInteractive"
+          crossOrigin="anonymous"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8406329717517376"
         />
       </head>
       <body
