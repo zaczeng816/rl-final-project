@@ -33,7 +33,7 @@ export default function RootLayout({
         <meta name="google-adsense-account" content="ca-pub-8406329717517376" />
         <Script
           id="adsbygoogle-init"
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
           crossOrigin="anonymous"
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8406329717517376"
         />
