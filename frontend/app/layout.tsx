@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Connect 4 - Play Against AI',
-  description: 'Play Connect 4 against an AI opponent. Choose to play as O (first) or X (second) and test your strategy!',
+  title: "Connect 4 - Play Against AI",
+  description:
+    "Play Connect 4 against an AI opponent. Choose to play as O (first) or X (second) and test your strategy!",
 };
 
 export default function RootLayout({
@@ -24,6 +26,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8406329717517376"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
