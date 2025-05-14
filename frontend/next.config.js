@@ -3,7 +3,21 @@ const nextConfig = {
   reactStrictMode: true,
   // Trust the proxy headers
   async headers() {
-    return [];
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "index, follow",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+        ],
+      },
+    ];
   },
   // Trust the proxy
   async rewrites() {
@@ -11,4 +25,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig; 
+module.exports = nextConfig;
