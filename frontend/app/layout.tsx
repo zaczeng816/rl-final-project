@@ -17,9 +17,6 @@ export const metadata: Metadata = {
   title: "Connect 4 - Play Against AI",
   description:
     "Play Connect 4 against an AI opponent. Choose to play as O (first) or X (second) and test your strategy!",
-  verification: {
-    google: "ca-pub-8406329717517376",
-  },
 };
 
 export default function RootLayout({
